@@ -201,7 +201,7 @@ async function startServer() {
             isForwarded: true,
             mentionedJid: [quoted.sender],
             forwardedNewsletterMessageInfo: {
-                newsletterName: '— SH.Fauzialifatah',
+                newsletterName: 'EssentialsR | Info',
                 newsletterJid: '120363367787013309@newsletter'
             },
             externalAdReply: {
