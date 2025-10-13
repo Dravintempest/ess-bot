@@ -14,14 +14,14 @@ command:
  ▢ ${prefix}runtime
 `;
     const footer = `${global.footer}`;
-    const image1 = `https://files.catbox.moe/y9rs67.jpg`;
-    const image2 = `https://files.catbox.moe/y9rs67.jpg`;
+    const image1 = `https://files.catbox.moe/jlkib4.png`;
+    const image2 = `https://files.catbox.moe/jlkib4.png`;
     const btnklick = "Assisten";
 
     const buttonData = [
         {
             title: `${global.nameown}`,
-            description: `${global.namebotz}`,
+            description: `${global.namebotz} Information`,
             id: '.rt'
         }
     ];
