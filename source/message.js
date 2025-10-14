@@ -201,51 +201,35 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
       }
       break;
 
-      case "cekidch": case "idch": {
-    if (!text) return m.reply(example("linkchnya"));
-    if (!text.includes("https://whatsapp.com/channel/")) return m.reply("Link tautan tidak valid");
+      hilangin tombol nya
+case "cekidch": case "idch": {
+if (!text) return m.reply(example("linkchnya"))
+if (!text.includes("https://whatsapp.com/channel/")) return m.reply("Link tautan tidak valid")
 
-    let result = text.split('https://whatsapp.com/channel/')[1];
-    let res = await conn.newsletterMetadata("invite", result);
+let result = text.split('https://whatsapp.com/channel/')[1]  
+let res = await conn.newsletterMetadata("invite", result)  
 
-    let teks = `*🌐 Info Channel WhatsApp*\n
-*ID :* ${res.id}
-*Nama :* ${res.name}
-*Total Pengikut :* ${res.subscribers}
-*Status :* ${res.state}
-*Verified :* ${res.verification == "VERIFIED" ? "✅ Terverifikasi" : "❌ Tidak Terverifikasi"}
-`;
+// Teks info dengan vibes modern  
+let teks = `*🌐 Info Channel WhatsApp*\n
 
-    const footer = global.footer;
-    const image = "https://files.catbox.moe/jlkib4.png";
+ID : ${res.id}
+Nama : ${res.name}
+Total Pengikut : ${res.subscribers}
+Status : ${res.state}
+Verified : ${res.verification == "VERIFIED" ? "✅ Terverifikasi" : "❌ Tidak Terverifikasi"}
+`
 
-    const message = {
-        templateMessage: {
-            hydratedTemplate: {
-                hydratedContentText: teks,
-                locationMessage: { jpegThumbnail: await getBuffer(image) },
-                hydratedFooterText: footer,
-                hydratedButtons: [
-                    {
-                        quickReplyButton: {
-                            displayText: "📋 Copy ID",
-                            id: `copyid_${res.id}` // nanti handle di button handler
-                        }
-                    },
-                    {
-                        urlButton: {
-                            displayText: "🌐 Buka Channel",
-                            url: `https://chat.whatsapp.com/${result}`
-                        }
-                    }
-                ]
-            }
-        }
-    };
+const footer = `${global.footer}`;  
+const image1 = `https://files.catbox.moe/jlkib4.png`; // bisa ganti sesuai channel  
+const image2 = `https://files.catbox.moe/jlkib4.png`;  
+const btnklick = "Salin ID";  
+  
 
-    await conn.sendMessage(m.chat, message, { quoted: m });
+await conn.sendButton(m.chat, teks, footer, btnklick, image1, image2, m);
+
 }
-break;
+break
+
 
       case 'runtime': case 'rt': case 'ping': {
 const startTime = Date.now();
