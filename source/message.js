@@ -202,38 +202,45 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
       break;
 
       case "cekidch": case "idch": {
-    if (!text) return m.reply(example("linkchnya"))
-    if (!text.includes("https://whatsapp.com/channel/")) return m.reply("Link tautan tidak valid")
-    
-    let result = text.split('https://whatsapp.com/channel/')[1]
-    let res = await conn.newsletterMetadata("invite", result)
+    if (!text) return m.reply(example("linkchnya"));
+    if (!text.includes("https://whatsapp.com/channel/")) return m.reply("❌ Link tautan tidak valid");
 
-    // Teks info dengan vibes modern
+    let result = text.split('https://whatsapp.com/channel/')[1];
+    let res = await conn.newsletterMetadata("invite", result);
+
     let teks = `*🌐 Info Channel WhatsApp*\n
 *ID :* ${res.id}
 *Nama :* ${res.name}
 *Total Pengikut :* ${res.subscribers}
 *Status :* ${res.state}
-*Verified :* ${res.verification == "VERIFIED" ? "✅ Terverifikasi" : "❌ Tidak Terverifikasi"}
-`
+*Verified :* ${res.verification == "VERIFIED" ? "✅ Terverifikasi" : "❌ Tidak Terverifikasi"}\n`;
 
-    const footer = `${global.footer}`;
-    const image1 = `https://files.catbox.moe/jlkib4.png`; // bisa ganti sesuai channel
-    const image2 = `https://files.catbox.moe/jlkib4.png`;
-    const btnklick = "Salin ID";
+    const footer = `📡 ${global.footer || "EssBot"}`;
+    const linkChannel = `https://whatsapp.com/channel/${result}`;
 
-    // Tombol copy
-    const buttonData = [
-        {
-            title: "Copy ID",
-            description: "Tekan untuk menyalin ID channel",
-            id: `copyid_${res.id}` // nanti handle di button handler
-        }
-    ];
-
-    await conn.sendButton(m.chat, teks, footer, btnklick, image1, image2, buttonData, m);
+    await conn.sendMessage(m.chat, {
+        text: teks,
+        footer,
+        templateButtons: [
+            {
+                name: "cta_copy",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "📋 Salin ID Channel",
+                    copy_code: res.id
+                })
+            },
+            {
+                name: "cta_url",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "🔗 Buka Channel",
+                    url: linkChannel
+                })
+            }
+        ],
+        headerType: 1
+    }, { quoted: m });
 }
-break
+break;
 
       case 'runtime': case 'rt': case 'ping': {
 const startTime = Date.now();
