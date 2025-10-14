@@ -96,53 +96,24 @@ async function startServer() {
     conn.ev.on("creds.update", saveCreds);
 
     if (!conn.authState.creds.registered) {
-  console.log(chalk.cyan("╭──────────────────────────────────────···"));
-  console.log(`📨 ${chalk.redBright("Please type your WhatsApp number")}:`);
-  console.log(chalk.cyan("├──────────────────────────────────────···"));
-  
-  let phoneNumber = await question(`   ${chalk.cyan("- Number")}: `);
-  console.log(chalk.cyan("╰──────────────────────────────────────···"));
-  
-  phoneNumber = phoneNumber.replace(/[^0-9]/g, "");
-  
-  if (!phoneNumber) {
-    console.log(chalk.red("❌ Nomor telepon tidak valid"));
-    process.exit();
-  }
+      console.log(chalk.cyan("╭──────────────────────────────────────···"));
+      console.log(`📨 ${chalk.redBright("Please type your WhatsApp number")}:`);
+      console.log(chalk.cyan("├──────────────────────────────────────···"));
+      let phoneNumber = await question(`   ${chalk.cyan("- Number")}: `);
+      console.log(chalk.cyan("╰──────────────────────────────────────···"));
+      phoneNumber = phoneNumber.replace(/[^0-9]/g, "");
 
-  // Pastikan format nomor benar (dengan kode negara)
-  if (!phoneNumber.startsWith("62") && !phoneNumber.startsWith("+62")) {
-    phoneNumber = "62" + phoneNumber;
-  }
-
-  console.log(chalk.yellow("⏳ Menyiapkan koneksi ke WhatsApp..."));
-
-  try {
-    // Tunggu hingga koneksi benar-benar siap
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    const code = await conn.requestPairingCode(phoneNumber);
-    const formatted = code?.match(/.{1,4}/g)?.join("-") || code;
-    
-    console.log(chalk.cyan("╭──────────────────────────────────────···"));
-    console.log(` 💻 ${chalk.redBright("Your Pairing Code")}:`);
-    console.log(chalk.cyan("├──────────────────────────────────────···"));
-    console.log(`   ${chalk.cyan("- Code")}: ${formatted}`);
-    console.log(chalk.cyan("╰──────────────────────────────────────···"));
-    console.log(chalk.green("\n📱 Buka WhatsApp → Linked Devices → Link a Device"));
-    console.log(chalk.green("🔢 Masukkan kode pairing di atas"));
-    
-  } catch (err) {
-    console.error(chalk.red("❌ Gagal mendapatkan pairing code:"), err.message);
-    console.log(chalk.yellow("💡 Tips:"));
-    console.log(chalk.gray("1. Pastikan nomor WhatsApp benar"));
-    console.log(chalk.gray("2. Pastikan koneksi internet stabil"));
-    console.log(chalk.gray("3. Coba gunakan format: 628xxxxxxxxxx"));
-    console.log(chalk.gray("4. Jika masih gagal, hapus folder 'session' dan coba ulang"));
-  } finally {
-    rl.close();
-  }
-}
+      setTimeout(async () => {
+        let code = await conn.requestPairingCode(phoneNumber);
+        code = code?.match(/.{1,4}/g)?.join("-") || code;
+        console.log(chalk.cyan("╭──────────────────────────────────────···"));
+        console.log(` 💻 ${chalk.redBright("Your Pairing Code")}:`);
+        console.log(chalk.cyan("├──────────────────────────────────────···"));
+        console.log(`   ${chalk.cyan("- Code")}: ${code}`);
+        console.log(chalk.cyan("╰──────────────────────────────────────···"));
+      }, 3000);
+      rl.close();
+    }
 
     conn.ev.on("messages.upsert", async (chatUpdate) => {
       try {
