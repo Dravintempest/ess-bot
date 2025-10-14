@@ -201,7 +201,6 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
       }
       break;
 
-      hilangin tombol nya
 case "cekidch": case "idch": {
 if (!text) return m.reply(example("linkchnya"))
 if (!text.includes("https://whatsapp.com/channel/")) return m.reply("Link tautan tidak valid")
