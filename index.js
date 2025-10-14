@@ -96,24 +96,35 @@ async function startServer() {
     conn.ev.on("creds.update", saveCreds);
 
     if (!conn.authState.creds.registered) {
-      console.log(chalk.cyan("╭──────────────────────────────────────···"));
-      console.log(`📨 ${chalk.redBright("Please type your WhatsApp number")}:`);
-      console.log(chalk.cyan("├──────────────────────────────────────···"));
-      let phoneNumber = await question(`   ${chalk.cyan("- Number")}: `);
-      console.log(chalk.cyan("╰──────────────────────────────────────···"));
-      phoneNumber = phoneNumber.replace(/[^0-9]/g, "");
+  console.log(chalk.cyan("╭──────────────────────────────────────···"));
+  console.log(`📨 ${chalk.redBright("Please type your WhatsApp number")}:`);
+  console.log(chalk.cyan("├──────────────────────────────────────···"));
+  let phoneNumber = await question(`   ${chalk.cyan("- Number")}: `);
+  console.log(chalk.cyan("╰──────────────────────────────────────···"));
+  phoneNumber = phoneNumber.replace(/[^0-9]/g, "");
 
-      setTimeout(async () => {
-        let code = await conn.requestPairingCode(phoneNumber);
-        code = code?.match(/.{1,4}/g)?.join("-") || code;
-        console.log(chalk.cyan("╭──────────────────────────────────────···"));
-        console.log(` 💻 ${chalk.redBright("Your Pairing Code")}:`);
-        console.log(chalk.cyan("├──────────────────────────────────────···"));
-        console.log(`   ${chalk.cyan("- Code")}: ${code}`);
-        console.log(chalk.cyan("╰──────────────────────────────────────···"));
-      }, 3000);
+  console.log(chalk.yellow("⏳ Menyiapkan koneksi ke WhatsApp..."));
+
+  // Tunggu 5 detik agar socket siap
+  setTimeout(async () => {
+    try {
+      const code = await conn.requestPairingCode(phoneNumber);
+      const formatted = code?.match(/.{1,4}/g)?.join("-") || code;
+      console.log(chalk.cyan("╭──────────────────────────────────────···"));
+      console.log(` 💻 ${chalk.redBright("Your Pairing Code")}:`);
+      console.log(chalk.cyan("├──────────────────────────────────────···"));
+      console.log(`   ${chalk.cyan("- Code")}: ${formatted}`);
+      console.log(chalk.cyan("╰──────────────────────────────────────···"));
+    } catch (err) {
+      console.error(chalk.red("❌ Gagal mendapatkan pairing code:"), err.message);
+      console.log(chalk.gray("→ Pastikan koneksi internet stabil dan coba ulang:"));
+      console.log(chalk.gray("   node index.js pair"));
+      process.exit();
+    } finally {
       rl.close();
     }
+  }, 5000);
+}
 
     conn.ev.on("messages.upsert", async (chatUpdate) => {
       try {
