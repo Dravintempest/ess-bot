@@ -64,6 +64,9 @@ export default async (conn, m) => {
     const messageType = m.mtype;
     const messageKey = message.key;
     const pushName = m.pushName || "Undefined";
+    const example = (teks) => {
+return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
+}
     const itsMe = m.key.fromMe;
     const chat = m.chat;
     const sender = m.sender;
