@@ -58,7 +58,7 @@ export default async (conn, m) => {
     const commands = command.replace(prefix, "");
     const args = body.trim().split(/ +/).slice(1);
     const q = args.join(" ");
-    const text = q = args.join(' ')
+    const text = q;
     const quoted = m.quoted ? m.quoted : m;
     const message = m;
     const messageType = m.mtype;
