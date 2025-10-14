@@ -220,11 +220,10 @@ Verified : ${res.verification == "VERIFIED" ? "✅ Terverifikasi" : "❌ Tidak T
 
 const footer = `${global.footer}`;  
 const image1 = `https://files.catbox.moe/jlkib4.png`; // bisa ganti sesuai channel  
-const image2 = `https://files.catbox.moe/jlkib4.png`;  
-const btnklick = "Salin ID";  
+const image2 = `https://files.catbox.moe/jlkib4.png`;
   
 
-await conn.sendButton(m.chat, teks, footer, btnklick, image1, image2, m);
+await conn.sendButton(m.chat, teks, footer, image1, image2, m);
 
 }
 break
