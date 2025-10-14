@@ -208,39 +208,48 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
     let result = text.split('https://whatsapp.com/channel/')[1];
     let res = await conn.newsletterMetadata("invite", result);
 
-    let teks = `*🌐 Info Channel WhatsApp*\n
+    const linkChannel = `https://whatsapp.com/channel/${result}`;
+    const teks = `*🌐 Info Channel WhatsApp*\n
 *ID :* ${res.id}
 *Nama :* ${res.name}
 *Total Pengikut :* ${res.subscribers}
 *Status :* ${res.state}
 *Verified :* ${res.verification == "VERIFIED" ? "✅ Terverifikasi" : "❌ Tidak Terverifikasi"}\n`;
 
-    const linkChannel = `https://whatsapp.com/channel/${result}`;
-
-    await conn.sendMessage(m.chat, {
+    const msg = {
         interactiveMessage: {
-            title: "🌐 Info Channel WhatsApp",
-            body: teks,
-            footer: global.footer || "EssBot",
-            buttons: [
-                {
-                    name: "cta_copy",
-                    buttonParamsJson: JSON.stringify({
-                        display_text: "📋 Salin ID Channel",
-                        id: res.id,
-                        copy_code: res.id
-                    })
-                },
-                {
-                    name: "cta_url",
-                    buttonParamsJson: JSON.stringify({
-                        display_text: "🔗 Buka Channel",
-                        url: linkChannel
-                    })
-                }
-            ]
+            header: {
+                title: "📢 Info Channel WhatsApp",
+                subtitle: "Cek detail dan link channel",
+            },
+            body: {
+                text: teks
+            },
+            footer: {
+                text: global.footer || "EssBot"
+            },
+            nativeFlowMessage: {
+                buttons: [
+                    {
+                        name: "cta_copy",
+                        buttonParamsJson: JSON.stringify({
+                            display_text: "📋 Salin ID Channel",
+                            copy_code: res.id
+                        })
+                    },
+                    {
+                        name: "cta_url",
+                        buttonParamsJson: JSON.stringify({
+                            display_text: "🔗 Buka Channel",
+                            url: linkChannel
+                        })
+                    }
+                ]
+            }
         }
-    }, { quoted: m });
+    };
+
+    await conn.sendMessage(m.chat, msg, { quoted: m });
 }
 break;
 
