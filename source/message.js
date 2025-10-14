@@ -215,29 +215,31 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
 *Status :* ${res.state}
 *Verified :* ${res.verification == "VERIFIED" ? "✅ Terverifikasi" : "❌ Tidak Terverifikasi"}\n`;
 
-    const footer = `📡 ${global.footer || "EssBot"}`;
     const linkChannel = `https://whatsapp.com/channel/${result}`;
 
     await conn.sendMessage(m.chat, {
-        text: teks,
-        footer,
-        templateButtons: [
-            {
-                name: "cta_copy",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "📋 Salin ID Channel",
-                    copy_code: res.id
-                })
-            },
-            {
-                name: "cta_url",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "🔗 Buka Channel",
-                    url: linkChannel
-                })
-            }
-        ],
-        headerType: 1
+        interactiveMessage: {
+            title: "🌐 Info Channel WhatsApp",
+            body: teks,
+            footer: global.footer || "EssBot",
+            buttons: [
+                {
+                    name: "cta_copy",
+                    buttonParamsJson: JSON.stringify({
+                        display_text: "📋 Salin ID Channel",
+                        id: res.id,
+                        copy_code: res.id
+                    })
+                },
+                {
+                    name: "cta_url",
+                    buttonParamsJson: JSON.stringify({
+                        display_text: "🔗 Buka Channel",
+                        url: linkChannel
+                    })
+                }
+            ]
+        }
     }, { quoted: m });
 }
 break;
