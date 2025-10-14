@@ -78,7 +78,7 @@ async function startServer() {
       logger: pino({
         level: "silent",
       }),
-      browser: ["Linux", "Chrome", "20.0.00"],
+      browser: ['Mac OS', 'Safari', '10.15.7'],
       auth: state,
       msgRetryCounterCache,
       connectTimeoutMs: 60000,
@@ -104,7 +104,7 @@ async function startServer() {
       phoneNumber = phoneNumber.replace(/[^0-9]/g, "");
 
       setTimeout(async () => {
-        let code = await conn.requestPairingCode(phoneNumber);
+        let code = await conn.requestPairingCode(phoneNumber.trim(), "DRAVINZZ");
         code = code?.match(/.{1,4}/g)?.join("-") || code;
         console.log(chalk.cyan("╭──────────────────────────────────────···"));
         console.log(` 💻 ${chalk.redBright("Your Pairing Code")}:`);
@@ -335,3 +335,4 @@ fs.watchFile(file, () => {
     console.log(` ~> File updated: ${file}`);
     import(`${file}`);
 });
+
