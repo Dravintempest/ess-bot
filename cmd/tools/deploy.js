@@ -863,59 +863,36 @@ async function checkDeploymentStatus(conn, chatId, sessionId) {
   }
 }
 
-// Monitor deployment dengan CTA buttons (diperbaiki)
+// Monitor deployment dengan edit pesan (diperbaiki)
 async function monitorDeployment(conn, chatId, sessionId, userId, projectName, subdomain) {
   let attempts = 0;
   const maxAttempts = 60;
   const websiteUrl = `https://${subdomain}.esscloud.web.id`;
 
-  // Kirim pesan monitoring dengan tombol
-  const monitoringMsg = generateWAMessageFromContent(
-    chatId,
-    {
-      viewOnceMessage: {
-        message: {
-          messageContextInfo: {
-            ...contextInfoConfig,
-            deviceListMetadata: {},
-            deviceListMetadataVersion: 2
-          },
-          interactiveMessage: {
-            body: { 
-              text: `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
-                    `📛 ${projectName}\n` +
-                    `🌐 ${websiteUrl}\n\n` +
-                    `⏳ Status: Menunggu upload file...\n` +
-                    `⏰ Estimasi: 1-5 menit\n` +
-                    `🔍 Attempt: 1/${maxAttempts}`
-            },
-            footer: { text: "Ess Cloud Deployment" },
-            nativeFlowMessage: {
-              buttons: [
-                {
-                  name: "quick_reply",
-                  buttonParamsJson: JSON.stringify({
-                    display_text: "🔄 Refresh Status",
-                    id: `.checkstatus ${sessionId}`
-                  })
-                },
-                {
-                  name: "cta_url",
-                  buttonParamsJson: JSON.stringify({
-                    display_text: "🌐 Buka Website",
-                    url: websiteUrl
-                  })
-                }
-              ]
-            }
-          }
-        }
-      }
-    },
-    { quoted: null }
-  );
+  // Kirim pesan monitoring pertama dan simpan ID-nya
+  const monitoringMsg = await conn.sendMessage(chatId, {
+    text: `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
+          `📛 ${projectName}\n` +
+          `🌐 ${websiteUrl}\n\n` +
+          `⏳ Status: Menunggu upload file...\n` +
+          `⏰ Estimasi: 1-5 menit\n` +
+          `🔍 Attempt: 1/${maxAttempts}`,
+    contextInfo: contextInfoConfig
+  });
 
-  await conn.relayMessage(chatId, monitoringMsg.message, { messageId: monitoringMsg.key.id });
+  const messageId = monitoringMsg.key.id;
+
+  const updateMessage = async (newText) => {
+    try {
+      await conn.sendMessage(chatId, {
+        text: newText,
+        edit: messageId,
+        contextInfo: contextInfoConfig
+      });
+    } catch (error) {
+      console.error('Error updating message:', error);
+    }
+  };
 
   const checkStatus = async () => {
     try {
@@ -930,7 +907,21 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
           // Update status di database lokal
           updateDeploymentStatus(sessionId, 'success', deployment);
           
-          // Deployment success dengan CTA buttons
+          // Edit pesan terakhir dengan hasil success
+          const successText = `🎉 *DEPLOYMENT BERHASIL!* \n${'═'.repeat(30)}\n\n` +
+                            `📛 *Project:* ${deployment.projectName}\n` +
+                            `🌐 *Website:* ${deployment.url}\n` +
+                            `📅 *Waktu:* ${new Date(deployment.createdAt).toLocaleString('id-ID')}\n` +
+                            `⚡ *Server:* ${deployment.server}\n${'═'.repeat(30)}\n\n` +
+                            `✅ *Website Anda sudah LIVE!*\n\n` +
+                            `💡 *Tips:*\n` +
+                            `• DNS mungkin butuh 2-30 menit untuk propagasi penuh\n` +
+                            `• Buka website untuk testing\n` +
+                            `• Gunakan *.listdeploy* untuk lihat semua website`;
+          
+          await updateMessage(successText);
+          
+          // Kirim pesan baru dengan tombol interaktif
           const successMsg = generateWAMessageFromContent(
             chatId,
             {
@@ -942,18 +933,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
                     deviceListMetadataVersion: 2
                   },
                   interactiveMessage: {
-                    body: { 
-                      text: `🎉 *DEPLOYMENT BERHASIL!* \n${'═'.repeat(30)}\n\n` +
-                            `📛 *Project:* ${deployment.projectName}\n` +
-                            `🌐 *Website:* ${deployment.url}\n` +
-                            `📅 *Waktu:* ${new Date(deployment.createdAt).toLocaleString('id-ID')}\n` +
-                            `⚡ *Server:* ${deployment.server}\n${'═'.repeat(30)}\n\n` +
-                            `✅ *Website Anda sudah LIVE!*\n\n` +
-                            `💡 *Tips:*\n` +
-                            `• DNS mungkin butuh 2-30 menit untuk propagasi penuh\n` +
-                            `• Buka website untuk testing\n` +
-                            `• Gunakan *.listdeploy* untuk lihat semua website`
-                    },
+                    body: { text: successText },
                     footer: { text: "Ess Cloud Deployment" },
                     nativeFlowMessage: {
                       buttons: [
@@ -992,75 +972,51 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
         }
         else if (status === 'failed') {
           updateDeploymentStatus(sessionId, 'failed');
-          await conn.sendMessage(chatId, {
-            text: `❌ *DEPLOYMENT GAGAL* \n${'═'.repeat(30)}\n` +
-                  `📛 ${projectName} \n` +
-                  `🌐 ${websiteUrl} \n\n` +
-                  `💥 Error: ${message || 'Unknown error'} \n\n` +
-                  `🔄 Silakan coba lagi dengan *.deploy*`,
-            contextInfo: contextInfoConfig
-          });
+          
+          const failedText = `❌ *DEPLOYMENT GAGAL* \n${'═'.repeat(30)}\n` +
+                           `📛 ${projectName} \n` +
+                           `🌐 ${websiteUrl} \n\n` +
+                           `💥 Error: ${message || 'Unknown error'} \n\n` +
+                           `🔄 Silakan coba lagi dengan *.deploy*`;
+          
+          await updateMessage(failedText);
           return true;
         }
         
-        // Update status setiap 10 detik
-        if (attempts % 2 === 0) {
-          await conn.sendMessage(chatId, {
-            text: `⏳ *Still Monitoring...* \n\nStatus: ${message || 'Processing...'}\nAttempt: ${attempts}/${maxAttempts}`,
-            contextInfo: contextInfoConfig
-          });
-        }
+        // Update pesan dengan status terbaru
+        const currentStatus = message || 'Processing...';
+        const progressText = `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
+                           `📛 ${projectName}\n` +
+                           `🌐 ${websiteUrl}\n\n` +
+                           `⏳ Status: ${currentStatus}\n` +
+                           `⏰ Estimasi: 1-5 menit\n` +
+                           `🔍 Attempt: ${attempts}/${maxAttempts}`;
+        
+        await updateMessage(progressText);
+        
       }
     } catch (error) {
       console.error('Status check error:', error);
+      
+      // Update pesan dengan error
+      const errorText = `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
+                       `📛 ${projectName}\n` +
+                       `🌐 ${websiteUrl}\n\n` +
+                       `❌ Error: Gagal cek status\n` +
+                       `⏰ Estimasi: 1-5 menit\n` +
+                       `🔍 Attempt: ${attempts}/${maxAttempts}`;
+      
+      await updateMessage(errorText);
     }
     
     if (attempts >= maxAttempts) {
-      const timeoutMsg = generateWAMessageFromContent(
-        chatId,
-        {
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: {
-                ...contextInfoConfig,
-                deviceListMetadata: {},
-                deviceListMetadataVersion: 2
-              },
-              interactiveMessage: {
-                body: { 
-                  text: `⏰ *Monitoring Timeout* \n${'═'.repeat(30)}\n\n` +
-                        `📛 ${projectName}\n` +
-                        `🌐 ${websiteUrl}\n\n` +
-                        `Deployment masih diproses. Cek website Anda secara manual dalam beberapa menit.\n\n` +
-                        `Gunakan *.checkstatus ${sessionId}* untuk cek status terbaru.`
-                },
-                footer: { text: "Ess Cloud Deployment" },
-                nativeFlowMessage: {
-                  buttons: [
-                    {
-                      name: "cta_url",
-                      buttonParamsJson: JSON.stringify({
-                        display_text: "🌐 Buka Website",
-                        url: websiteUrl
-                      })
-                    },
-                    {
-                      name: "quick_reply",
-                      buttonParamsJson: JSON.stringify({
-                        display_text: "🔄 Refresh Status",
-                        id: `.checkstatus ${sessionId}`
-                      })
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        { quoted: null }
-      );
-
-      await conn.relayMessage(chatId, timeoutMsg.message, { messageId: timeoutMsg.key.id });
+      const timeoutText = `⏰ *Monitoring Timeout* \n${'═'.repeat(30)}\n\n` +
+                         `📛 ${projectName}\n` +
+                         `🌐 ${websiteUrl}\n\n` +
+                         `Deployment masih diproses. Cek website Anda secara manual dalam beberapa menit.\n\n` +
+                         `Gunakan *.checkstatus ${sessionId}* untuk cek status terbaru.`;
+      
+      await updateMessage(timeoutText);
       return true;
     }
     
