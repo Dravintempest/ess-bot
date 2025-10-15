@@ -13,6 +13,8 @@ let handler = async (m, { conn, args, prefix, command }) => {
         const sid = text.split('https://whatsapp.com/channel/')[1]
     const SLink = `https://whatsapp.com/channel/${sid}`
 
+        const image1 = `https://files.catbox.moe/jlkib4.png`;
+
 
         let result = text.split('https://whatsapp.com/channel/')[1]
 let res = await conn.newsletterMetadata("invite", result)
@@ -51,7 +53,24 @@ let teks = `* *ID : ${res.id}*
                                             url: SLink
                                         })
                                     }
-                                ]
+                                ],
+                            contextInfo: {
+            forwardingScore: 999,
+            isForwarded: true,
+            mentionedJid: [quoted.sender],
+            forwardedNewsletterMessageInfo: {
+                newsletterName: 'EssentialsR | Info',
+                newsletterJid: '120363400190026912@newsletter'
+            },
+            externalAdReply: {
+                title: global.namebotz,
+                body: global.nameown,
+                thumbnailUrl: image1,
+                sourceUrl: global.YouTube,
+                mediaType: 1,
+                renderLargerThumbnail: false
+            }
+        }
                             }
                         }
                     }
