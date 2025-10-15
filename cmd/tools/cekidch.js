@@ -11,7 +11,7 @@ let handler = async (m, { conn, args, prefix, command }) => {
             return m.reply("❌ Link tautan tidak valid!")
 
         const sid = text.split('https://whatsapp.com/channel/')[1]
-    const SLink = `https://chat.whatsapp.com/${sid}`
+    const SLink = `https://whatsapp.com/channel/${sid}`
 
 
         let result = text.split('https://whatsapp.com/channel/')[1]
