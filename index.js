@@ -41,14 +41,6 @@ if (!pairingCode) {
   console.log(chalk.redBright("command work ( node index.js pair"));
 }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-const question = (text) => new Promise((resolve) => rl.question(text, resolve));
-
-const msgRetryCounterCache = new NodeCache();
-
 // Context Info Configuration
 const contextInfoConfig = {
   forwardingScore: 999,
@@ -86,10 +78,15 @@ const getBuffer = async (url, options) => {
     }
 };
 
+// Variabel global untuk panel interface
+let panelInterface = null;
+
 // Fungsi untuk handle command dari panel/console
 async function handlePanelCommand(input, conn) {
   try {
-    const args = input.trim().split(' ');
+    // Bersihkan input dari karakter yang tidak diinginkan
+    const cleanInput = input.trim().replace(/\s+/g, ' ');
+    const args = cleanInput.split(' ');
     const command = args[0].toLowerCase();
     
     if (command === 'message' || command === 'msg') {
@@ -255,6 +252,9 @@ async function handlePanelCommand(input, conn) {
       
     } else if (command === 'exit' || command === 'quit') {
       console.log(chalk.yellow('👋 Keluar dari bot...'));
+      if (panelInterface) {
+        panelInterface.close();
+      }
       process.exit(0);
       
     } else {
@@ -295,6 +295,15 @@ async function startServer() {
       console.log(chalk.cyan("╭──────────────────────────────────────···"));
       console.log(`📨 ${chalk.redBright("Please type your WhatsApp number")}:`);
       console.log(chalk.cyan("├──────────────────────────────────────···"));
+      
+      // Buat interface sementara untuk pairing
+      const tempRl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      
+      const question = (text) => new Promise((resolve) => tempRl.question(text, resolve));
+      
       let phoneNumber = await question(`   ${chalk.cyan("- Number")}: `);
       console.log(chalk.cyan("╰──────────────────────────────────────···"));
       phoneNumber = phoneNumber.replace(/[^0-9]/g, "");
@@ -307,8 +316,8 @@ async function startServer() {
         console.log(chalk.cyan("├──────────────────────────────────────···"));
         console.log(`   ${chalk.cyan("- Code")}: ${code}`);
         console.log(chalk.cyan("╰──────────────────────────────────────···"));
+        tempRl.close();
       }, 3000);
-      rl.close();
     }
 
     conn.ev.on("messages.upsert", async (chatUpdate) => {
@@ -359,31 +368,35 @@ async function startServer() {
       } else if (connection === "open") {
         console.log(chalk.black(chalk.bgWhite("✅ Berhasil Terhubung....")));
         
-        // Tambahkan panel command interface setelah koneksi berhasil
-        console.log('\n' + chalk.cyan('╭──────────────────────────────────────···'));
-        console.log(chalk.cyan('│ 🎮 PANEL CONTROL READY'));
-        console.log(chalk.cyan('│ Ketik "help" untuk melihat commands'));
-        console.log(chalk.cyan('╰──────────────────────────────────────···\n'));
-        
-        // Handle input dari console
-        const panelInterface = readline.createInterface({
-          input: process.stdin,
-          output: process.stdout,
-          prompt: chalk.yellow('PANEL> ')
-        });
-        
-        panelInterface.prompt();
-        
-        panelInterface.on('line', async (input) => {
-          if (input.trim()) {
-            await handlePanelCommand(input, conn);
-          }
+        // Hanya buat panel interface sekali saja
+        if (!panelInterface) {
+          console.log('\n' + chalk.cyan('╭──────────────────────────────────────···'));
+          console.log(chalk.cyan('│ 🎮 PANEL CONTROL READY'));
+          console.log(chalk.cyan('│ Ketik "help" untuk melihat commands'));
+          console.log(chalk.cyan('╰──────────────────────────────────────···\n'));
+          
+          // Buat panel interface dengan konfigurasi yang benar
+          panelInterface = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+            prompt: chalk.yellow('PANEL> '),
+            terminal: true
+          });
+          
           panelInterface.prompt();
-        });
-        
-        panelInterface.on('close', () => {
-          console.log(chalk.yellow('\n👋 Panel ditutup, bot tetap berjalan...'));
-        });
+          
+          panelInterface.on('line', async (input) => {
+            if (input.trim()) {
+              await handlePanelCommand(input, conn);
+            }
+            panelInterface.prompt();
+          });
+          
+          panelInterface.on('close', () => {
+            console.log(chalk.yellow('\n👋 Panel ditutup, bot tetap berjalan...'));
+            panelInterface = null;
+          });
+        }
       }
     });
     
