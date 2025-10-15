@@ -201,33 +201,6 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
       }
       break;
 
-case "cekidch": case "idch": {
-if (!text) return m.reply(example("linkchnya"))
-if (!text.includes("https://whatsapp.com/channel/")) return m.reply("Link tautan tidak valid")
-
-let result = text.split('https://whatsapp.com/channel/')[1]  
-let res = await conn.newsletterMetadata("invite", result)  
-
-// Teks info dengan vibes modern  
-let teks = `*🌐 Info Channel WhatsApp*\n
-
-ID : ${res.id}
-Nama : ${res.name}
-Total Pengikut : ${res.subscribers}
-Status : ${res.state}
-Verified : ${res.verification == "VERIFIED" ? "✅ Terverifikasi" : "❌ Tidak Terverifikasi"}
-`
-
-const footer = `${global.footer}`;  
-const image1 = `https://files.catbox.moe/jlkib4.png`; // bisa ganti sesuai channel  
-const image2 = `https://files.catbox.moe/jlkib4.png`;
-  
-
-await conn.sendButton(m.chat, teks, footer, image1, image2, m);
-
-}
-break
-
 
       case 'runtime': case 'rt': case 'ping': {
 const startTime = Date.now();
