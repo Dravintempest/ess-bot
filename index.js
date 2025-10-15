@@ -40,7 +40,6 @@ const pairingCode = process.argv.includes("pair");
 
 if (!pairingCode) {
   console.log(chalk.blueBright("Telegram @dr4vin"));
-console.log(asciiArt);
 }
 
 const rl = readline.createInterface({
@@ -50,8 +49,6 @@ const rl = readline.createInterface({
 const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 
 const msgRetryCounterCache = new NodeCache();
-
-const asciiArt = fs.readFileSync('ascii.txt', 'utf8');
 
 const getBuffer = async (url, options) => {
     try {
@@ -338,5 +335,6 @@ fs.watchFile(file, () => {
     console.log(` ~> File updated: ${file}`);
     import(`${file}`);
 });
+
 
 
