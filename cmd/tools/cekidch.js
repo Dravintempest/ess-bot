@@ -1,9 +1,9 @@
 import pkg from '@whiskeysockets/baileys'
 const { proto, generateWAMessageFromContent } = pkg
 
-let handler = async (m, { conn, text, usedPrefix, command }) => {
+let handler = async (m, { conn, text, prefix, command }) => {
     try {
-        if (!text) return m.reply(`❌ *Link channel mana?*\n\nContoh: ${usedPrefix + command} https://whatsapp.com/channel/ABC123`)
+        if (!text) return m.reply(`❌ *Link channel mana?*\n\nContoh: ${prefix + command} https://whatsapp.com/channel/ABC123`)
 
         if (!text.includes("https://whatsapp.com/channel/")) 
             return m.reply("❌ Link tautan tidak valid!")
@@ -17,7 +17,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
                    `🆔 *ID:* ${channelId}\n` +
                    `🔗 *Link:* ${channelLink}`
 
-        // buat message interaktif dengan tombol copy & cta url
+        
         let msg = generateWAMessageFromContent(
             m.chat,
             {
