@@ -14,6 +14,7 @@ let handler = async (m, { conn, args, prefix, command }) => {
     const SLink = `https://whatsapp.com/channel/${sid}`
 
         const image1 = `https://files.catbox.moe/jlkib4.png`;
+        let quoted = m.quoted ? m.quoted : m
 
 
         let result = text.split('https://whatsapp.com/channel/')[1]
