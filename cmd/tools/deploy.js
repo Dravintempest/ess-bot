@@ -1,4 +1,4 @@
-// deploy.js - Bot WA Deployment dengan CTA Copy & URL
+// deploy.js - Bot WA Deployment dengan CTA Copy & URL + Quick Reply
 import fs from "fs-extra";
 import axios from "axios";
 import pkg from '@whiskeysockets/baileys'
@@ -7,10 +7,88 @@ const { proto, generateWAMessageFromContent } = pkg
 const DEPLOY_API_URL = "https://www.esscloud.my.id/api";
 const URL_HOME = "https://www.esscloud.my.id";
 
+// Handler untuk quick reply
+const quickReplyHandlers = {
+  // Handler untuk deploy
+  '.deploy': async (m, conn) => {
+    await handler(m, { conn });
+  },
+  
+  // Handler untuk konfirmasi deploy
+  '.confirmdeploy': async (m, conn) => {
+    const chatId = m.chat;
+    await conn.sendMessage(chatId, {
+      text: "✅ Konfirmasi diterima! Melanjutkan deployment..."
+    });
+    // Simpan state konfirmasi untuk proses deployment
+    // (akan dihandle di main handler)
+  },
+  
+  // Handler untuk edit data
+  '.changedata': async (m, conn) => {
+    const chatId = m.chat;
+    await conn.sendMessage(chatId, {
+      text: "✏️ Silakan ketik *.deploy* lagi untuk mengisi data baru."
+    });
+  },
+  
+  // Handler untuk batalkan
+  '.cancel': async (m, conn) => {
+    const chatId = m.chat;
+    await conn.sendMessage(chatId, {
+      text: "❌ Deployment dibatalkan. Ketik *.deploy* jika ingin mencoba lagi."
+    });
+  },
+  
+  // Handler untuk cek status
+  '.checkstatus': async (m, conn) => {
+    const chatId = m.chat;
+    const args = m.text.split(' ');
+    const sessionId = args[1];
+    
+    if (sessionId) {
+      await conn.sendMessage(chatId, {
+        text: `🔍 Mengecek status deployment...\nSession ID: ${sessionId}`
+      });
+      // Panggil fungsi cek status
+      await checkDeploymentStatus(conn, chatId, sessionId);
+    } else {
+      await conn.sendMessage(chatId, {
+        text: "❌ Format: .checkstatus <session_id>"
+      });
+    }
+  },
+  
+  // Handler untuk list deploy
+  '.listdeploy': async (m, conn) => {
+    await listDeployments(m, { conn });
+  },
+  
+  // Handler untuk bantuan
+  '.help': async (m, conn) => {
+    const chatId = m.chat;
+    await conn.sendMessage(chatId, {
+      text: `🆘 *BANTUAN DEPLOYMENT* \n${'═'.repeat(30)}\n\n` +
+            `*.deploy* - Buat website baru\n` +
+            `*.listdeploy* - Lihat website Anda\n` +
+            `*.checkstatus <id>* - Cek status deploy\n\n` +
+            `💡 *Cara Deployment:*\n` +
+            `1. Ketik *.deploy*\n` +
+            `2. Isi format project & subdomain\n` +
+            `3. Konfirmasi deployment\n` +
+            `4. Upload file ZIP website\n` +
+            `5. Website otomatis live!`
+    });
+  }
+};
+
 let handler = async (m, { conn }) => {
   const chatId = m.chat;
   const userId = m.sender.split('@')[0];
   const isGroup = m.chat.endsWith('@g.us');
+  
+  // State management untuk tracking proses deployment user
+  const userState = {};
   
   try {
     // Jika di grup, kirim pesan awal ke private chat
@@ -66,10 +144,10 @@ let handler = async (m, { conn }) => {
                     })
                   },
                   {
-                    name: "cta_url",
+                    name: "quick_reply",
                     buttonParamsJson: JSON.stringify({
-                      display_text: "❌ Batalkan",
-                      url: "https://wa.me/?text=.cancel"
+                      display_text: "🚀 Mulai Deploy",
+                      id: ".deploy_start"
                     })
                   }
                 ]
@@ -84,50 +162,14 @@ let handler = async (m, { conn }) => {
     await conn.relayMessage(chatId, formatMessage.message, { messageId: formatMessage.key.id });
 
     // Step 2: Tunggu user mengisi format
-    const waitMsg = generateWAMessageFromContent(
-      chatId,
-      {
-        viewOnceMessage: {
-          message: {
-            messageContextInfo: {
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            interactiveMessage: {
-              body: { 
-                text: `🔄 *LANGKAH SELANJUTNYA* \n${'═'.repeat(30)}\n\n` +
-                      `1. 📋 Klik "Copy Format" untuk copy template\n` +
-                      `2. 📝 Edit dengan data project Anda\n` +
-                      `3. 📤 Reply pesan ini dengan format yang sudah diisi\n\n` +
-                      `⏰ *Timeout: 2 menit*`
-              },
-              footer: { text: "Ess Cloud Deployment" },
-              nativeFlowMessage: {
-                buttons: [
-                  {
-                    name: "cta_copy",
-                    buttonParamsJson: JSON.stringify({
-                      display_text: "📋 Copy Format Lagi",
-                      copy_code: formatText
-                    })
-                  },
-                  {
-                    name: "quick_reply",
-                    buttonParamsJson: JSON.stringify({
-                      display_text: "🚀 Coba Lagi",
-                      id: ".deploy"
-                    })
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      { quoted: m }
-    );
-
-    await conn.relayMessage(chatId, waitMsg.message, { messageId: waitMsg.key.id });
+    await conn.sendMessage(chatId, {
+      text: `🔄 *LANGKAH SELANJUTNYA* \n${'═'.repeat(30)}\n\n` +
+            `1. 📋 Copy format di atas\n` +
+            `2. 📝 Edit dengan data project Anda\n` +
+            `3. 📤 Kirim format yang sudah diisi di sini\n\n` +
+            `⏰ *Timeout: 2 menit*\n\n` +
+            `Atau klik "Mulai Deploy" untuk menggunakan format default`
+    });
 
     const formatMsg = await waitForMessage(conn, chatId, 120000);
     if (!formatMsg) {
@@ -137,61 +179,69 @@ let handler = async (m, { conn }) => {
       return;
     }
 
-    // Extract data dari format
-    const messageText = extractTextFromMessage(formatMsg);
-    const projectMatch = messageText.match(/project:\s*(.+)/i);
-    const subdomainMatch = messageText.match(/subdomain:\s*(.+)/i);
+    let projectName, subdomain;
 
-    if (!projectMatch || !subdomainMatch) {
-      const errorMsg = generateWAMessageFromContent(
-        chatId,
-        {
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: {
-                deviceListMetadata: {},
-                deviceListMetadataVersion: 2
-              },
-              interactiveMessage: {
-                body: { 
-                  text: `❌ *FORMAT TIDAK VALID* \n${'═'.repeat(30)}\n\n` +
-                        `Pastikan format sesuai contoh:\n\n` +
-                        `project: Nama Project Anda\n` +
-                        `subdomain: subdomain-anda\n\n` +
-                        `🔄 Silakan coba lagi`
+    // Cek jika user klik quick reply "Mulai Deploy"
+    if (formatMsg.message?.templateButtonReplyMessage?.selectedId === '.deploy_start') {
+      projectName = "My Website";
+      subdomain = `website-${Date.now().toString().slice(-6)}`;
+    } else {
+      // Extract data dari format text
+      const messageText = extractTextFromMessage(formatMsg);
+      const projectMatch = messageText.match(/project:\s*(.+)/i);
+      const subdomainMatch = messageText.match(/subdomain:\s*(.+)/i);
+
+      if (!projectMatch || !subdomainMatch) {
+        const errorMsg = generateWAMessageFromContent(
+          chatId,
+          {
+            viewOnceMessage: {
+              message: {
+                messageContextInfo: {
+                  deviceListMetadata: {},
+                  deviceListMetadataVersion: 2
                 },
-                footer: { text: "Ess Cloud Deployment" },
-                nativeFlowMessage: {
-                  buttons: [
-                    {
-                      name: "quick_reply",
-                      buttonParamsJson: JSON.stringify({
-                        display_text: "🔄 Coba Lagi",
-                        id: ".deploy"
-                      })
-                    },
-                    {
-                      name: "cta_copy",
-                      buttonParamsJson: JSON.stringify({
-                        display_text: "📋 Copy Format",
-                        copy_code: formatText
-                      })
-                    }
-                  ]
+                interactiveMessage: {
+                  body: { 
+                    text: `❌ *FORMAT TIDAK VALID* \n${'═'.repeat(30)}\n\n` +
+                          `Pastikan format sesuai contoh:\n\n` +
+                          `project: Nama Project Anda\n` +
+                          `subdomain: subdomain-anda\n\n` +
+                          `🔄 Silakan coba lagi`
+                  },
+                  footer: { text: "Ess Cloud Deployment" },
+                  nativeFlowMessage: {
+                    buttons: [
+                      {
+                        name: "quick_reply",
+                        buttonParamsJson: JSON.stringify({
+                          display_text: "🔄 Coba Lagi",
+                          id: ".deploy"
+                        })
+                      },
+                      {
+                        name: "cta_copy",
+                        buttonParamsJson: JSON.stringify({
+                          display_text: "📋 Copy Format",
+                          copy_code: formatText
+                        })
+                      }
+                    ]
+                  }
                 }
               }
             }
-          }
-        },
-        { quoted: m }
-      );
+          },
+          { quoted: m }
+        );
 
-      await conn.relayMessage(chatId, errorMsg.message, { messageId: errorMsg.key.id });
-      return;
+        await conn.relayMessage(chatId, errorMsg.message, { messageId: errorMsg.key.id });
+        return;
+      }
+
+      projectName = projectMatch[1].trim();
+      subdomain = subdomainMatch[1].trim();
     }
-
-    let projectName = projectMatch[1].trim();
-    let subdomain = subdomainMatch[1].trim();
 
     // Validasi project name
     if (!projectName || projectName.length < 2) {
@@ -279,35 +329,41 @@ let handler = async (m, { conn }) => {
 
     await conn.relayMessage(chatId, confirmMsg.message, { messageId: confirmMsg.key.id });
 
+    // Simpan data user untuk proses selanjutnya
+    userState[userId] = { projectName, subdomain, websiteUrl, step: 'confirmation' };
+
     const confirmResponse = await waitForMessage(conn, chatId, 60000);
     if (!confirmResponse) {
       await conn.sendMessage(chatId, {
         text: `⏰ *Waktu Konfirmasi Habis* \n\nDeployment dibatalkan.`
       });
+      delete userState[userId];
       return;
     }
 
-    const confirmText = extractTextFromMessage(confirmResponse).toLowerCase();
-    
-    if (confirmText.includes('cancel') || confirmText.includes('batal') || 
-        confirmText === '.cancel') {
+    // Handle response konfirmasi
+    const responseText = extractTextFromMessage(confirmResponse);
+    const selectedId = confirmResponse.message?.templateButtonReplyMessage?.selectedId;
+
+    if (selectedId === '.cancel' || responseText.includes('.cancel')) {
       await conn.sendMessage(chatId, {
         text: `❌ *Deployment Dibatalkan* \n\nKapan saja siap deploy, tinggal ketik *.deploy* ya! 😊`
       });
+      delete userState[userId];
       return;
     }
 
-    if (confirmText.includes('edit') || confirmText.includes('ubah') || 
-        confirmText === '.changedata') {
+    if (selectedId === '.changedata' || responseText.includes('.changedata')) {
       await conn.sendMessage(chatId, {
         text: `🔄 *Mengulang Proses* \n\nSilakan ketik *.deploy* lagi untuk mengisi data baru.`
       });
+      delete userState[userId];
       return;
     }
 
-    // Step 4: Proses deployment
-    if (confirmText.includes('confirm') || confirmText.includes('ya') || 
-        confirmText.includes('deploy') || confirmText === '.confirmdeploy') {
+    // Jika konfirmasi deploy
+    if (selectedId === '.confirmdeploy' || responseText.includes('.confirmdeploy') || 
+        responseText.toLowerCase().includes('ya') || responseText.toLowerCase().includes('deploy')) {
       
       await conn.sendMessage(chatId, {
         text: `⏳ *MEMULAI DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
@@ -329,6 +385,9 @@ let handler = async (m, { conn }) => {
 
       const { sessionId, uploadUrl } = sessionResponse.data;
       const fullUploadUrl = `${URL_HOME}${uploadUrl}`;
+
+      // Update user state
+      userState[userId] = { ...userState[userId], sessionId, step: 'upload' };
 
       // Step 5: Kirim instruksi upload dengan CTA buttons
       const uploadInstructionMsg = generateWAMessageFromContent(
@@ -392,14 +451,19 @@ let handler = async (m, { conn }) => {
       // Step 6: Monitor deployment
       await monitorDeployment(conn, chatId, sessionId, userId, projectName, subdomain);
 
+      // Hapus state setelah deployment dimulai
+      delete userState[userId];
+
     } else {
       await conn.sendMessage(chatId, {
         text: `❌ *Respon Tidak Dikenali* \n\nDeployment dibatalkan. Ketik *.deploy* untuk memulai ulang.`
       });
+      delete userState[userId];
     }
 
   } catch (error) {
     console.error("Deploy Error:", error);
+    delete userState[userId];
     
     let errorMsg = `❌ *DEPLOYMENT GAGAL* \n${'═'.repeat(30)}\n`;
     
@@ -457,6 +521,35 @@ let handler = async (m, { conn }) => {
     await conn.relayMessage(chatId, errorMessage.message, { messageId: errorMessage.key.id });
   }
 };
+
+// Fungsi untuk cek status deployment
+async function checkDeploymentStatus(conn, chatId, sessionId) {
+  try {
+    const statusResponse = await axios.get(`${DEPLOY_API_URL}/deployment-status/${sessionId}`);
+    
+    if (statusResponse.data.success) {
+      const { status, deployment, message } = statusResponse.data;
+      
+      if (status === 'success' && deployment) {
+        await conn.sendMessage(chatId, {
+          text: `✅ *DEPLOYMENT SUCCESS* \n\nWebsite: ${deployment.url}\nStatus: Live 🟢`
+        });
+      } else if (status === 'failed') {
+        await conn.sendMessage(chatId, {
+          text: `❌ *DEPLOYMENT FAILED* \n\nError: ${message}`
+        });
+      } else {
+        await conn.sendMessage(chatId, {
+          text: `⏳ *DEPLOYMENT IN PROGRESS* \n\nStatus: ${message || 'Processing...'}`
+        });
+      }
+    }
+  } catch (error) {
+    await conn.sendMessage(chatId, {
+      text: `❌ *Gagal cek status* \n\nError: ${error.message}`
+    });
+  }
+}
 
 // Monitor deployment dengan CTA buttons
 async function monitorDeployment(conn, chatId, sessionId, userId, projectName, subdomain) {
@@ -671,7 +764,8 @@ async function waitForMessage(conn, jid, timeout = 60000) {
         if (msg.key.remoteJid !== jid || msg.key.fromMe) return;
         
         const hasText = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
-        if (hasText) {
+        const hasButton = msg.message?.templateButtonReplyMessage;
+        if (hasText || hasButton) {
           clearTimeout(timeoutId);
           conn.ev.off("messages.upsert", listener);
           resolve(msg);
@@ -692,6 +786,9 @@ function extractTextFromMessage(msg) {
     ""
   );
 }
+
+// Export quick reply handlers
+handler.quickReplyHandlers = quickReplyHandlers;
 
 // Command handlers
 handler.help = ["deploy"];
