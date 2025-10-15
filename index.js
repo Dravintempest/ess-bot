@@ -1,5 +1,4 @@
-
- /*
+/*
 
  * Thank you dev and friends
  * Fauzialifatah ( me )
@@ -38,11 +37,8 @@ global.mode = true;
 global.sessionName = "session";
 const pairingCode = process.argv.includes("pair");
 
-const asciiArt = await fs.readFile("ascii.txt", "utf8");
-console.log(asciiArt);
-
 if (!pairingCode) {
-  console.log(chalk.blueBright("Telegram @dr4vin"));
+  console.log(chalk.redBright("command work ( node index.js pair"));
 }
 
 const rl = readline.createInterface({
@@ -52,6 +48,24 @@ const rl = readline.createInterface({
 const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 
 const msgRetryCounterCache = new NodeCache();
+
+// Context Info Configuration
+const contextInfoConfig = {
+  forwardingScore: 999,
+  isForwarded: true,
+  forwardedNewsletterMessageInfo: {
+    newsletterName: 'EssentialsR | Info',
+    newsletterJid: '120363367787013309@newsletter'
+  },
+  externalAdReply: {
+    title: "EssentialsR Bot",
+    body: "EssentialsR | Official", 
+    thumbnailUrl: "https://files.catbox.moe/jlkib4.png",
+    sourceUrl: "https://www.esscloud.my.id",
+    mediaType: 1,
+    renderLargerThumbnail: false
+  }
+};
 
 const getBuffer = async (url, options) => {
     try {
@@ -72,6 +86,185 @@ const getBuffer = async (url, options) => {
     }
 };
 
+// Fungsi untuk handle command dari panel/console
+async function handlePanelCommand(input, conn) {
+  try {
+    const args = input.trim().split(' ');
+    const command = args[0].toLowerCase();
+    
+    if (command === 'message' || command === 'msg') {
+      if (args.length < 3) {
+        console.log(chalk.red('Format salah! Gunakan: message <nomor> <pesan>'));
+        console.log(chalk.yellow('Contoh: message 6281234567890 halo apa kabar?'));
+        return;
+      }
+      
+      let number = args[1];
+      const message = args.slice(2).join(' ');
+      
+      // Format nomor
+      if (!number.startsWith('62')) {
+        if (number.startsWith('0')) {
+          number = '62' + number.substring(1);
+        } else if (number.startsWith('+62')) {
+          number = number.substring(1);
+        }
+      }
+      
+      // Validasi nomor
+      if (!number.match(/^62\d{9,12}$/)) {
+        console.log(chalk.red('Nomor tidak valid! Format harus 62xxxx'));
+        return;
+      }
+      
+      const jid = number + '@s.whatsapp.net';
+      
+      console.log(chalk.cyan('╭──────────────────────────────────────···'));
+      console.log(chalk.cyan('│ 📤 MENGIRIM PESAN KE:'));
+      console.log(chalk.cyan('├──────────────────────────────────────···'));
+      console.log(chalk.cyan(`│ 📞 Nomor: ${number}`));
+      console.log(chalk.cyan(`│ 💬 Pesan: ${message}`));
+      console.log(chalk.cyan('╰──────────────────────────────────────···'));
+      
+      // Kirim pesan dengan context info
+      await conn.sendMessage(jid, { 
+        text: message,
+        contextInfo: contextInfoConfig
+      });
+      
+      console.log(chalk.green('✅ Pesan berhasil dikirim!'));
+      
+    } else if (command === 'broadcast' || command === 'bc') {
+      if (args.length < 3) {
+        console.log(chalk.red('Format salah! Gunakan: broadcast <nomor1,nomor2,...> <pesan>'));
+        console.log(chalk.yellow('Contoh: broadcast 6281234567890,6289876543210 halo semua'));
+        return;
+      }
+      
+      const numbers = args[1].split(',');
+      const message = args.slice(2).join(' ');
+      let successCount = 0;
+      let failCount = 0;
+      
+      console.log(chalk.cyan('╭──────────────────────────────────────···'));
+      console.log(chalk.cyan('│ 📤 BROADCAST PESAN:'));
+      console.log(chalk.cyan('├──────────────────────────────────────···'));
+      console.log(chalk.cyan(`│ 📞 Ke: ${numbers.length} nomor`));
+      console.log(chalk.cyan(`│ 💬 Pesan: ${message}`));
+      console.log(chalk.cyan('╰──────────────────────────────────────···'));
+      
+      for (let num of numbers) {
+        try {
+          let number = num.trim();
+          
+          // Format nomor
+          if (!number.startsWith('62')) {
+            if (number.startsWith('0')) {
+              number = '62' + number.substring(1);
+            } else if (number.startsWith('+62')) {
+              number = number.substring(1);
+            }
+          }
+          
+          if (number.match(/^62\d{9,12}$/)) {
+            const jid = number + '@s.whatsapp.net';
+            await conn.sendMessage(jid, { 
+              text: message,
+              contextInfo: contextInfoConfig
+            });
+            successCount++;
+            console.log(chalk.green(`✅ Berhasil ke: ${number}`));
+          } else {
+            failCount++;
+            console.log(chalk.red(`❌ Gagal ke: ${num} (format salah)`));
+          }
+        } catch (error) {
+          failCount++;
+          console.log(chalk.red(`❌ Gagal ke: ${num}`));
+        }
+        
+        // Delay antar pesan untuk menghindari spam
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      console.log(chalk.cyan('╭──────────────────────────────────────···'));
+      console.log(chalk.cyan('│ 📊 HASIL BROADCAST:'));
+      console.log(chalk.cyan('├──────────────────────────────────────···'));
+      console.log(chalk.green(`│ ✅ Berhasil: ${successCount}`));
+      console.log(chalk.red(`│ ❌ Gagal: ${failCount}`));
+      console.log(chalk.cyan('╰──────────────────────────────────────···'));
+      
+    } else if (command === 'image' || command === 'img') {
+      if (args.length < 4) {
+        console.log(chalk.red('Format salah! Gunakan: image <nomor> <url_gambar> <caption>'));
+        console.log(chalk.yellow('Contoh: image 6281234567890 https://example.com/image.jpg ini gambarnya'));
+        return;
+      }
+      
+      let number = args[1];
+      const imageUrl = args[2];
+      const caption = args.slice(3).join(' ');
+      
+      // Format nomor
+      if (!number.startsWith('62')) {
+        if (number.startsWith('0')) {
+          number = '62' + number.substring(1);
+        } else if (number.startsWith('+62')) {
+          number = number.substring(1);
+        }
+      }
+      
+      // Validasi nomor
+      if (!number.match(/^62\d{9,12}$/)) {
+        console.log(chalk.red('Nomor tidak valid! Format harus 62xxxx'));
+        return;
+      }
+      
+      const jid = number + '@s.whatsapp.net';
+      
+      console.log(chalk.cyan('╭──────────────────────────────────────···'));
+      console.log(chalk.cyan('│ 🖼️ MENGIRIM GAMBAR KE:'));
+      console.log(chalk.cyan('├──────────────────────────────────────···'));
+      console.log(chalk.cyan(`│ 📞 Nomor: ${number}`));
+      console.log(chalk.cyan(`│ 🌐 URL Gambar: ${imageUrl}`));
+      console.log(chalk.cyan(`│ 💬 Caption: ${caption}`));
+      console.log(chalk.cyan('╰──────────────────────────────────────···'));
+      
+      // Kirim gambar dengan context info
+      await conn.sendMessage(jid, {
+        image: { url: imageUrl },
+        caption: caption,
+        contextInfo: contextInfoConfig
+      });
+      
+      console.log(chalk.green('✅ Gambar berhasil dikirim!'));
+      
+    } else if (command === 'help' || command === '?') {
+      console.log(chalk.cyan('╭──────────────────────────────────────···'));
+      console.log(chalk.cyan('│ 🛠️ PANEL COMMANDS:'));
+      console.log(chalk.cyan('├──────────────────────────────────────···'));
+      console.log(chalk.cyan('│ message <nomor> <pesan>'));
+      console.log(chalk.cyan('│   - Kirim pesan teks ke satu nomor'));
+      console.log(chalk.cyan('│ image <nomor> <url> <caption>'));
+      console.log(chalk.cyan('│   - Kirim gambar ke satu nomor'));
+      console.log(chalk.cyan('│ broadcast <nomor1,nomor2> <pesan>'));
+      console.log(chalk.cyan('│   - Kirim pesan ke banyak nomor'));
+      console.log(chalk.cyan('│ help - Tampilkan bantuan ini'));
+      console.log(chalk.cyan('│ exit - Keluar dari bot'));
+      console.log(chalk.cyan('╰──────────────────────────────────────···'));
+      
+    } else if (command === 'exit' || command === 'quit') {
+      console.log(chalk.yellow('👋 Keluar dari bot...'));
+      process.exit(0);
+      
+    } else {
+      console.log(chalk.red('❌ Command tidak dikenali! Ketik "help" untuk bantuan'));
+    }
+  } catch (error) {
+    console.log(chalk.red('❌ Error:', error.message));
+  }
+}
+
 async function startServer() {
   const child = async () => {
     process.on("unhandledRejection", (err) => console.error(err));
@@ -81,7 +274,7 @@ async function startServer() {
       logger: pino({
         level: "silent",
       }),
-      browser: ['Mac OS', 'Safari', '10.15.7'],
+      browser: ["Linux", "Chrome", "20.0.00"],
       auth: state,
       msgRetryCounterCache,
       connectTimeoutMs: 60000,
@@ -107,7 +300,7 @@ async function startServer() {
       phoneNumber = phoneNumber.replace(/[^0-9]/g, "");
 
       setTimeout(async () => {
-        let code = await conn.requestPairingCode(phoneNumber.trim(), "DRAVINZZ");
+        let code = await conn.requestPairingCode(phoneNumber);
         code = code?.match(/.{1,4}/g)?.join("-") || code;
         console.log(chalk.cyan("╭──────────────────────────────────────···"));
         console.log(` 💻 ${chalk.redBright("Your Pairing Code")}:`);
@@ -165,7 +358,32 @@ async function startServer() {
         }
       } else if (connection === "open") {
         console.log(chalk.black(chalk.bgWhite("✅ Berhasil Terhubung....")));
-        await loadConnect(conn);
+        
+        // Tambahkan panel command interface setelah koneksi berhasil
+        console.log('\n' + chalk.cyan('╭──────────────────────────────────────···'));
+        console.log(chalk.cyan('│ 🎮 PANEL CONTROL READY'));
+        console.log(chalk.cyan('│ Ketik "help" untuk melihat commands'));
+        console.log(chalk.cyan('╰──────────────────────────────────────···\n'));
+        
+        // Handle input dari console
+        const panelInterface = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+          prompt: chalk.yellow('PANEL> ')
+        });
+        
+        panelInterface.prompt();
+        
+        panelInterface.on('line', async (input) => {
+          if (input.trim()) {
+            await handlePanelCommand(input, conn);
+          }
+          panelInterface.prompt();
+        });
+        
+        panelInterface.on('close', () => {
+          console.log(chalk.yellow('\n👋 Panel ditutup, bot tetap berjalan...'));
+        });
       }
     });
     
@@ -199,23 +417,7 @@ async function startServer() {
                 }
             }
         ],
-        contextInfo: {
-            forwardingScore: 999,
-            isForwarded: true,
-            mentionedJid: [quoted.sender],
-            forwardedNewsletterMessageInfo: {
-                newsletterName: 'EssentialsR | Info',
-                newsletterJid: '120363367787013309@newsletter'
-            },
-            externalAdReply: {
-                title: global.namebotz,
-                body: global.nameown,
-                thumbnailUrl: image1,
-                sourceUrl: global.YouTube,
-                mediaType: 1,
-                renderLargerThumbnail: false
-            }
-        },
+        contextInfo: contextInfoConfig,
         ...options
     };
 
@@ -261,6 +463,7 @@ async function startServer() {
         jid,
         {
           text: teks,
+          contextInfo: contextInfoConfig,
           ...options,
         },
         {
@@ -278,6 +481,7 @@ async function startServer() {
           image: buffer,
           caption: caption,
           jpegThumbnail: "",
+          contextInfo: contextInfoConfig,
           ...options,
         },
         {
@@ -302,6 +506,7 @@ async function startServer() {
           caption: caption,
           gifPlayback: gif,
           jpegThumbnail: "",
+          contextInfo: contextInfoConfig,
           ...options,
         },
         {
@@ -317,6 +522,7 @@ async function startServer() {
         {
           audio: buffer,
           ptt: ptt,
+          contextInfo: contextInfoConfig,
           ...options,
         },
         {
@@ -338,7 +544,3 @@ fs.watchFile(file, () => {
     console.log(` ~> File updated: ${file}`);
     import(`${file}`);
 });
-
-
-
-
