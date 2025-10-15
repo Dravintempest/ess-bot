@@ -10,14 +10,14 @@ let handler = async (m, { conn, args, prefix, command }) => {
         if (!text.includes("https://whatsapp.com/channel/")) 
             return m.reply("❌ Link tautan tidak valid!")
 
-        let channelId = text.split('https://whatsapp.com/channel/')[1]
-        if (!channelId) return m.reply("❌ Tidak bisa mendapatkan ID channel!")
 
-        let channelLink = `https://chat.whatsapp.com/${channelId}`
-
-        let teks = `🌐 *INFORMASI CHANNEL WHATSAPP*\n\n` +
-                   `🆔 *ID:* ${channelId}\n` +
-                   `🔗 *Link:* ${channelLink}`
+        let result = text.split('https://whatsapp.com/channel/')[1]
+let res = await conn.newsletterMetadata("invite", result)
+let teks = `* *ID : ${res.id}*
+* *Nama :* ${res.name}
+* *Total Pengikut :* ${res.subscribers}
+* *Status :* ${res.state}
+* *Verified :* ${res.verification == "VERIFIED" ? "Terverifikasi" : "Tidak"}`
 
         let msg = generateWAMessageFromContent(
             m.chat,
@@ -30,21 +30,21 @@ let handler = async (m, { conn, args, prefix, command }) => {
                         },
                         interactiveMessage: {
                             body: { text: teks },
-                            footer: { text: `🔍 ${global.namebot}` },
+                            footer: { text: `Ess Bot` },
                             nativeFlowMessage: {
                                 buttons: [
                                     {
                                         name: "cta_copy",
                                         buttonParamsJson: JSON.stringify({
                                             display_text: "📋 Salin ID",
-                                            copy_code: channelId
+                                            copy_code: res.id
                                         })
                                     },
                                     {
                                         name: "cta_url",
                                         buttonParamsJson: JSON.stringify({
                                             display_text: "🌐 Buka Channel",
-                                            url: channelLink
+                                            url: res.url
                                         })
                                     }
                                 ]
