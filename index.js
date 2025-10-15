@@ -38,6 +38,9 @@ global.mode = true;
 global.sessionName = "session";
 const pairingCode = process.argv.includes("pair");
 
+const asciiArt = await fs.readFile("ascii.txt", "utf8");
+console.log(asciiArt);
+
 if (!pairingCode) {
   console.log(chalk.blueBright("Telegram @dr4vin"));
 }
@@ -335,6 +338,7 @@ fs.watchFile(file, () => {
     console.log(` ~> File updated: ${file}`);
     import(`${file}`);
 });
+
 
 
 
