@@ -51,6 +51,23 @@ let handler = async (m, { conn, args, prefix, command, pushName }) => {
                             }
                         ]
                     }
+                },
+                contextInfo: {
+                    forwardingScore: 999,
+                    isForwarded: true,
+                    mentionedJid: m.quoted ? [m.quoted.sender] : [],
+                    forwardedNewsletterMessageInfo: {
+                        newsletterName: 'EssentialsR | Info',
+                        newsletterJid: '120363367787013309@newsletter'
+                    },
+                    externalAdReply: {
+                        title: global.namebotz || 'My Bot',
+                        body: global.nameown || 'Bot Owner',
+                        thumbnailUrl: image1,
+                        sourceUrl: global.YouTube || 'https://youtube.com',
+                        mediaType: 1,
+                        renderLargerThumbnail: false
+                    }
                 }
             },
             { quoted: m }
