@@ -1,8 +1,10 @@
 import pkg from '@whiskeysockets/baileys'
 const { proto, generateWAMessageFromContent } = pkg
 
-let handler = async (m, { conn, text, prefix, command }) => {
+let handler = async (m, { conn, args, prefix, command }) => {
     try {
+        // pastiin text ada
+        let text = (args?.join(' ') || '').trim()
         if (!text) return m.reply(`❌ *Link channel mana?*\n\nContoh: ${prefix + command} https://whatsapp.com/channel/ABC123`)
 
         if (!text.includes("https://whatsapp.com/channel/")) 
@@ -17,7 +19,6 @@ let handler = async (m, { conn, text, prefix, command }) => {
                    `🆔 *ID:* ${channelId}\n` +
                    `🔗 *Link:* ${channelLink}`
 
-        
         let msg = generateWAMessageFromContent(
             m.chat,
             {
