@@ -174,11 +174,46 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
         return;
     }
 
+   function loadTests(){
+  try {
+    return JSON.parse(fs.readFileSync('./tests.json'));
+  } catch(e){
+    return {};
+  }
+}
+function saveTests(obj){
+  fs.writeFileSync('./tests.json', JSON.stringify(obj, null, 2));
+}
+   
+
     switch (commands) {
       case "mode": {
         m.reply(`🤖 Bot Mode: ${conn.public ? "Public" : "Self"}`);
       }
       break;
+
+      case 'tes': {
+  if (!args || args.length === 0) {
+    return m.reply(`silahkan isi ini\nnama:\nhobi:`);
+  }
+
+  const text = args.join(' ') || (m.quoted && m.quoted.text) || m.text || '';
+  const namaMatch = text.match(/nama\s*:\s*([^\n\r]+)/i);
+  const hobiMatch = text.match(/hobi\s*:\s*([^\n\r]+)/i);
+  const nama = namaMatch ? namaMatch[1].trim() : null;
+  const hobi = hobiMatch ? hobiMatch[1].trim() : null;
+
+  if (!nama || !hobi) {
+    return m.reply(`Format belum lengkap. Contoh:\nnama: Dravin\nhobi: Nge-bot`);
+  }
+
+  const tests = loadTests();
+  tests[m.sender] = { jid: m.sender, nama, hobi, time: new Date().toISOString() };
+  saveTests(tests);
+
+  await m.reply(`thank you for testing\n\nnama: ${nama}\nhobi: ${hobi}`);
+}
+break;
       
       case "only": {
          let duh = body.slice(body.indexOf(commands) + commands.length).trim() || "return m"
