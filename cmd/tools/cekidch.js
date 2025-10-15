@@ -23,54 +23,55 @@ let handler = async (m, { conn, args, prefix, command }) => {
 
         const image1 = `https://files.catbox.moe/jlkib4.png`;
 
-        let msg = generateWAMessageFromContent(
-            m.chat,
-            {
-                viewOnceMessage: {
-                    message: {
-                        messageContextInfo: {
-                            deviceListMetadata: {},
-                            deviceListMetadataVersion: 2,
-                            externalAdReply: {
-                                title: global.namebotz || 'Ess Bot',
-                                body: global.nameown || 'Bot Utilities', 
-                                thumbnailUrl: image1,
-                                sourceUrl: global.YouTube || 'https://youtube.com',
-                                mediaType: 1,
-                                renderLargerThumbnail: true
-                            },
-                            forwardingScore: 999,
-                            isForwarded: true
+        // Buat message dengan contextInfo terpisah
+        const message = {
+            interactiveMessage: {
+                body: { 
+                    text: teks 
+                },
+                footer: { 
+                    text: `${global.footer || 'Ess Bot'}` 
+                },
+                nativeFlowMessage: {
+                    buttons: [
+                        {
+                            name: "cta_copy",
+                            buttonParamsJson: JSON.stringify({
+                                display_text: "📋 Salin ID",
+                                copy_code: res.id
+                            })
                         },
-                        interactiveMessage: {
-                            body: { text: teks },
-                            footer: { text: `${global.footer || 'Ess Bot'}` },
-                            nativeFlowMessage: {
-                                buttons: [
-                                    {
-                                        name: "cta_copy",
-                                        buttonParamsJson: JSON.stringify({
-                                            display_text: "📋 Salin ID", 
-                                            copy_code: res.id
-                                        })
-                                    },
-                                    {
-                                        name: "cta_url",
-                                        buttonParamsJson: JSON.stringify({
-                                            display_text: "🌐 Buka Channel",
-                                            url: SLink
-                                        })
-                                    }
-                                ]
-                            }
+                        {
+                            name: "cta_url", 
+                            buttonParamsJson: JSON.stringify({
+                                display_text: "🌐 Buka Channel",
+                                url: SLink
+                            })
                         }
+                    ]
+                },
+                header: {
+                    imageMessage: {
+                        url: image1,
+                        mimetype: 'image/jpeg'
                     }
+                },
+                contextInfo: {
+                    externalAdReply: {
+                        title: global.namebotz || 'Ess Bot',
+                        body: global.nameown || 'Bot Utilities',
+                        thumbnailUrl: image1,
+                        sourceUrl: global.YouTube || 'https://youtube.com',
+                        mediaType: 1,
+                        renderLargerThumbnail: true
+                    },
+                    forwardingScore: 999,
+                    isForwarded: true
                 }
-            },
-            { quoted: m }
-        )
+            }
+        }
 
-        await conn.relayMessage(msg.key.remoteJid, msg.message, { messageId: msg.key.id })
+        await conn.sendMessage(m.chat, message, { quoted: m })
 
     } catch (error) {
         console.error('cekidch error:', error)
@@ -79,7 +80,7 @@ let handler = async (m, { conn, args, prefix, command }) => {
 }
 
 handler.help = ['cekidch <link>']
-handler.tags = ['tools']
+handler.tags = ['tools'] 
 handler.command = ['idch', 'cekidch']
 handler.register = true
 handler.limit = 2
