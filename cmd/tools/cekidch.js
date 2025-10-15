@@ -10,11 +10,15 @@ let handler = async (m, { conn, args, prefix, command }) => {
         if (!text.includes("https://whatsapp.com/channel/")) 
             return m.reply("❌ Link tautan tidak valid!")
 
+        const sid = link.split('https://whatsapp.com/channel/')[1]
+    const SLink = `https://chat.whatsapp.com/${sid}`
+
 
         let result = text.split('https://whatsapp.com/channel/')[1]
 let res = await conn.newsletterMetadata("invite", result)
 let teks = `* *ID : ${res.id}*
 * *Nama :* ${res.name}
+* *Link :* ${SLink}
 * *Total Pengikut :* ${res.subscribers}
 * *Status :* ${res.state}
 * *Verified :* ${res.verification == "VERIFIED" ? "Terverifikasi" : "Tidak"}`
@@ -44,7 +48,7 @@ let teks = `* *ID : ${res.id}*
                                         name: "cta_url",
                                         buttonParamsJson: JSON.stringify({
                                             display_text: "🌐 Buka Channel",
-                                            url: res.url
+                                            url: SLink
                                         })
                                     }
                                 ]
