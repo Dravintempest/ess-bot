@@ -32,6 +32,10 @@ import handleMessage from './source/message.js';
 import { fileURLToPath } from 'url';
 import { smsg } from "./source/myfunc.js";
 import "./source/myfunc.js";
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 global.mode = true;
 global.sessionName = "session";
@@ -80,6 +84,47 @@ const getBuffer = async (url, options) => {
 
 // Variabel global untuk panel interface
 let panelInterface = null;
+
+// Fungsi untuk git pull
+async function gitPull() {
+  try {
+    console.log(chalk.cyan('╭──────────────────────────────────────···'));
+    console.log(chalk.cyan('│ 🔄 MELAKUKAN GIT PULL...'));
+    console.log(chalk.cyan('├──────────────────────────────────────···'));
+    
+    const { stdout, stderr } = await execAsync('git pull');
+    
+    if (stdout) {
+      console.log(chalk.green('│ ✅ Git Pull Output:'));
+      console.log(chalk.white('│ ' + stdout.replace(/\n/g, '\n│ ')));
+    }
+    
+    if (stderr) {
+      console.log(chalk.yellow('│ ⚠️ Git Pull Warning:'));
+      console.log(chalk.white('│ ' + stderr.replace(/\n/g, '\n│ ')));
+    }
+    
+    console.log(chalk.cyan('╰──────────────────────────────────────···'));
+    console.log(chalk.green('✅ Git pull selesai!'));
+    
+    return { success: true, stdout, stderr };
+  } catch (error) {
+    console.log(chalk.red('╭──────────────────────────────────────···'));
+    console.log(chalk.red('│ ❌ GAGAL GIT PULL'));
+    console.log(chalk.red('├──────────────────────────────────────···'));
+    console.log(chalk.red(`│ Error: ${error.message}`));
+    console.log(chalk.red('╰──────────────────────────────────────···'));
+    return { success: false, error: error.message };
+  }
+}
+
+// Fungsi untuk restart bot
+function restartBot() {
+  console.log(chalk.yellow('🔄 Restarting bot...'));
+  setTimeout(() => {
+    process.exit(0);
+  }, 2000);
+}
 
 // Fungsi untuk handle command dari panel/console
 async function handlePanelCommand(input, conn) {
@@ -236,6 +281,23 @@ async function handlePanelCommand(input, conn) {
       
       console.log(chalk.green('✅ Gambar berhasil dikirim!'));
       
+    } else if (command === 'gitpull' || command === 'update') {
+      // Fitur git pull
+      const result = await gitPull();
+      if (result.success) {
+        console.log(chalk.yellow('💡 Ketik "restart" untuk menerapkan update'));
+      }
+      
+    } else if (command === 'restart') {
+      // Restart bot
+      console.log(chalk.yellow('🔄 Restarting bot...'));
+      if (panelInterface) {
+        panelInterface.close();
+      }
+      setTimeout(() => {
+        process.exit(0);
+      }, 2000);
+      
     } else if (command === 'help' || command === '?') {
       console.log(chalk.cyan('╭──────────────────────────────────────···'));
       console.log(chalk.cyan('│ 🛠️ PANEL COMMANDS:'));
@@ -246,6 +308,10 @@ async function handlePanelCommand(input, conn) {
       console.log(chalk.cyan('│   - Kirim gambar ke satu nomor'));
       console.log(chalk.cyan('│ broadcast <nomor1,nomor2> <pesan>'));
       console.log(chalk.cyan('│   - Kirim pesan ke banyak nomor'));
+      console.log(chalk.cyan('│ gitpull / update'));
+      console.log(chalk.cyan('│   - Update bot dari GitHub'));
+      console.log(chalk.cyan('│ restart'));
+      console.log(chalk.cyan('│   - Restart bot'));
       console.log(chalk.cyan('│ help - Tampilkan bantuan ini'));
       console.log(chalk.cyan('│ exit - Keluar dari bot'));
       console.log(chalk.cyan('╰──────────────────────────────────────···'));
@@ -269,6 +335,10 @@ async function startServer() {
   const child = async () => {
     process.on("unhandledRejection", (err) => console.error(err));
     const { state, saveCreds } = await useMultiFileAuthState("./" + sessionName);
+    
+    // Perbaikan: Pastikan msgRetryCounterCache didefinisikan
+    const msgRetryCounterCache = new NodeCache();
+    
     const conn = makeWASocket({
       printQRInTerminal: !pairingCode,
       logger: pino({
@@ -276,7 +346,7 @@ async function startServer() {
       }),
       browser: ["Linux", "Chrome", "20.0.00"],
       auth: state,
-      msgRetryCounterCache,
+      msgRetryCounterCache, // Sekarang sudah terdefinisi
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 0,
       keepAliveIntervalMs: 10000,
