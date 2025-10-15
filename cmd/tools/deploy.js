@@ -7,78 +7,21 @@ const { proto, generateWAMessageFromContent } = pkg
 const DEPLOY_API_URL = "https://www.esscloud.my.id/api";
 const URL_HOME = "https://www.esscloud.my.id";
 
-// Handler untuk quick reply
-const quickReplyHandlers = {
-  // Handler untuk deploy
-  '.deploy': async (m, conn) => {
-    await handler(m, { conn });
+// Config untuk externalAdReply
+const contextInfoConfig = {
+  forwardingScore: 999,
+  isForwarded: true,
+  forwardedNewsletterMessageInfo: {
+    newsletterName: 'EssentialsR | Info',
+    newsletterJid: '120363367787013309@newsletter'
   },
-  
-  // Handler untuk konfirmasi deploy
-  '.confirmdeploy': async (m, conn) => {
-    const chatId = m.chat;
-    await conn.sendMessage(chatId, {
-      text: "✅ Konfirmasi diterima! Melanjutkan deployment..."
-    });
-    // Simpan state konfirmasi untuk proses deployment
-    // (akan dihandle di main handler)
-  },
-  
-  // Handler untuk edit data
-  '.changedata': async (m, conn) => {
-    const chatId = m.chat;
-    await conn.sendMessage(chatId, {
-      text: "✏️ Silakan ketik *.deploy* lagi untuk mengisi data baru."
-    });
-  },
-  
-  // Handler untuk batalkan
-  '.cancel': async (m, conn) => {
-    const chatId = m.chat;
-    await conn.sendMessage(chatId, {
-      text: "❌ Deployment dibatalkan. Ketik *.deploy* jika ingin mencoba lagi."
-    });
-  },
-  
-  // Handler untuk cek status
-  '.checkstatus': async (m, conn) => {
-    const chatId = m.chat;
-    const args = m.text.split(' ');
-    const sessionId = args[1];
-    
-    if (sessionId) {
-      await conn.sendMessage(chatId, {
-        text: `🔍 Mengecek status deployment...\nSession ID: ${sessionId}`
-      });
-      // Panggil fungsi cek status
-      await checkDeploymentStatus(conn, chatId, sessionId);
-    } else {
-      await conn.sendMessage(chatId, {
-        text: "❌ Format: .checkstatus <session_id>"
-      });
-    }
-  },
-  
-  // Handler untuk list deploy
-  '.listdeploy': async (m, conn) => {
-    await listDeployments(m, { conn });
-  },
-  
-  // Handler untuk bantuan
-  '.help': async (m, conn) => {
-    const chatId = m.chat;
-    await conn.sendMessage(chatId, {
-      text: `🆘 *BANTUAN DEPLOYMENT* \n${'═'.repeat(30)}\n\n` +
-            `*.deploy* - Buat website baru\n` +
-            `*.listdeploy* - Lihat website Anda\n` +
-            `*.checkstatus <id>* - Cek status deploy\n\n` +
-            `💡 *Cara Deployment:*\n` +
-            `1. Ketik *.deploy*\n` +
-            `2. Isi format project & subdomain\n` +
-            `3. Konfirmasi deployment\n` +
-            `4. Upload file ZIP website\n` +
-            `5. Website otomatis live!`
-    });
+  externalAdReply: {
+    title: "EssentialsR Bot",
+    body: "EssentialsR | Official", 
+    thumbnailUrl: "https://files.catbox.moe/jlkib4.png",
+    sourceUrl: "https://www.esscloud.my.id",
+    mediaType: 1,
+    renderLargerThumbnail: false
   }
 };
 
@@ -87,19 +30,24 @@ let handler = async (m, { conn }) => {
   const userId = m.sender.split('@')[0];
   const isGroup = m.chat.endsWith('@g.us');
   
-  // State management untuk tracking proses deployment user
-  const userState = {};
-  
   try {
     // Jika di grup, kirim pesan awal ke private chat
     if (isGroup) {
       await conn.sendMessage(m.sender, {
-        text: `👋 *Halo!* \n\nSaya melihat Anda ingin deploy website di grup. \nUntuk keamanan, kita lanjutkan di chat private ya! \n\nSilakan ketik *${m.text}* lagi di sini.`
+        text: `👋 *Halo!* \n\nSaya melihat Anda ingin deploy website di grup. \nUntuk keamanan, kita lanjutkan di chat private ya! \n\nSilakan ketik *${m.text}* lagi di sini.`,
+        contextInfo: {
+          ...contextInfoConfig,
+          mentionedJid: [m.sender]
+        }
       });
       
       await conn.sendMessage(chatId, {
-        text: `📩 *Check Private Chat!* \n\n@${userId.split('@')[0]}, saya sudah kirim instruksi deploy ke chat private Anda. \nSilakan cek pesan dari saya.`,
-        mentions: [m.sender]
+        text: `📩 *Check Private Chat!* \n\n@${userId}, saya sudah kirim instruksi deploy ke chat private Anda. \nSilakan cek pesan dari saya.`,
+        mentions: [m.sender],
+        contextInfo: {
+          ...contextInfoConfig,
+          mentionedJid: [m.sender]
+        }
       });
       return;
     }
@@ -128,6 +76,7 @@ let handler = async (m, { conn }) => {
         viewOnceMessage: {
           message: {
             messageContextInfo: {
+              ...contextInfoConfig,
               deviceListMetadata: {},
               deviceListMetadataVersion: 2
             },
@@ -168,13 +117,15 @@ let handler = async (m, { conn }) => {
             `2. 📝 Edit dengan data project Anda\n` +
             `3. 📤 Kirim format yang sudah diisi di sini\n\n` +
             `⏰ *Timeout: 2 menit*\n\n` +
-            `Atau klik "Mulai Deploy" untuk menggunakan format default`
+            `Atau klik "Mulai Deploy" untuk menggunakan format default`,
+      contextInfo: contextInfoConfig
     });
 
     const formatMsg = await waitForMessage(conn, chatId, 120000);
     if (!formatMsg) {
       await conn.sendMessage(chatId, {
-        text: `⏰ *Waktu Habis* \n\nSilakan ketik *${m.text}* lagi untuk memulai ulang.`
+        text: `⏰ *Waktu Habis* \n\nSilakan ketik *${m.text}* lagi untuk memulai ulang.`,
+        contextInfo: contextInfoConfig
       });
       return;
     }
@@ -198,6 +149,7 @@ let handler = async (m, { conn }) => {
             viewOnceMessage: {
               message: {
                 messageContextInfo: {
+                  ...contextInfoConfig,
                   deviceListMetadata: {},
                   deviceListMetadataVersion: 2
                 },
@@ -225,6 +177,13 @@ let handler = async (m, { conn }) => {
                           display_text: "📋 Copy Format",
                           copy_code: formatText
                         })
+                      },
+                      {
+                        name: "quick_reply",
+                        buttonParamsJson: JSON.stringify({
+                          display_text: "🚀 Deploy",
+                          id: ".deploy_start"
+                        })
                       }
                     ]
                   }
@@ -246,7 +205,8 @@ let handler = async (m, { conn }) => {
     // Validasi project name
     if (!projectName || projectName.length < 2) {
       await conn.sendMessage(chatId, {
-        text: `❌ *NAMA PROJECT TIDAK VALID* \n\nMinimal 2 karakter. Silakan coba lagi dengan *.deploy*`
+        text: `❌ *NAMA PROJECT TIDAK VALID* \n\nMinimal 2 karakter. Silakan coba lagi dengan *.deploy*`,
+        contextInfo: contextInfoConfig
       });
       return;
     }
@@ -260,14 +220,16 @@ let handler = async (m, { conn }) => {
 
     if (subdomain.length < 3) {
       await conn.sendMessage(chatId, {
-        text: `❌ *SUBDOMAIN TERLALU PENDEK* \n\nMinimal 3 karakter. Silakan coba lagi dengan *.deploy*`
+        text: `❌ *SUBDOMAIN TERLALU PENDEK* \n\nMinimal 3 karakter. Silakan coba lagi dengan *.deploy*`,
+        contextInfo: contextInfoConfig
       });
       return;
     }
     
     if (subdomain.length > 30) {
       await conn.sendMessage(chatId, {
-        text: `❌ *SUBDOMAIN TERLALU PANJANG* \n\nMaksimal 30 karakter. Silakan coba lagi dengan *.deploy*`
+        text: `❌ *SUBDOMAIN TERLALU PANJANG* \n\nMaksimal 30 karakter. Silakan coba lagi dengan *.deploy*`,
+        contextInfo: contextInfoConfig
       });
       return;
     }
@@ -281,6 +243,7 @@ let handler = async (m, { conn }) => {
         viewOnceMessage: {
           message: {
             messageContextInfo: {
+              ...contextInfoConfig,
               deviceListMetadata: {},
               deviceListMetadataVersion: 2
             },
@@ -329,15 +292,12 @@ let handler = async (m, { conn }) => {
 
     await conn.relayMessage(chatId, confirmMsg.message, { messageId: confirmMsg.key.id });
 
-    // Simpan data user untuk proses selanjutnya
-    userState[userId] = { projectName, subdomain, websiteUrl, step: 'confirmation' };
-
     const confirmResponse = await waitForMessage(conn, chatId, 60000);
     if (!confirmResponse) {
       await conn.sendMessage(chatId, {
-        text: `⏰ *Waktu Konfirmasi Habis* \n\nDeployment dibatalkan.`
+        text: `⏰ *Waktu Konfirmasi Habis* \n\nDeployment dibatalkan.`,
+        contextInfo: contextInfoConfig
       });
-      delete userState[userId];
       return;
     }
 
@@ -347,17 +307,46 @@ let handler = async (m, { conn }) => {
 
     if (selectedId === '.cancel' || responseText.includes('.cancel')) {
       await conn.sendMessage(chatId, {
-        text: `❌ *Deployment Dibatalkan* \n\nKapan saja siap deploy, tinggal ketik *.deploy* ya! 😊`
+        text: `❌ *Deployment Dibatalkan* \n\nKapan saja siap deploy, tinggal ketik *.deploy* ya! 😊`,
+        contextInfo: contextInfoConfig
       });
-      delete userState[userId];
       return;
     }
 
     if (selectedId === '.changedata' || responseText.includes('.changedata')) {
-      await conn.sendMessage(chatId, {
-        text: `🔄 *Mengulang Proses* \n\nSilakan ketik *.deploy* lagi untuk mengisi data baru.`
-      });
-      delete userState[userId];
+      const retryMsg = generateWAMessageFromContent(
+        chatId,
+        {
+          viewOnceMessage: {
+            message: {
+              messageContextInfo: {
+                ...contextInfoConfig,
+                deviceListMetadata: {},
+                deviceListMetadataVersion: 2
+              },
+              interactiveMessage: {
+                body: { 
+                  text: `🔄 *Mengulang Proses* \n\nSilakan ketik *.deploy* lagi untuk mengisi data baru.`
+                },
+                footer: { text: "Ess Cloud Deployment" },
+                nativeFlowMessage: {
+                  buttons: [
+                    {
+                      name: "quick_reply",
+                      buttonParamsJson: JSON.stringify({
+                        display_text: "🚀 Deploy Sekarang",
+                        id: ".deploy"
+                      })
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        { quoted: m }
+      );
+      await conn.relayMessage(chatId, retryMsg.message, { messageId: retryMsg.key.id });
       return;
     }
 
@@ -369,7 +358,8 @@ let handler = async (m, { conn }) => {
         text: `⏳ *MEMULAI DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
               `📛 ${projectName}\n` +
               `🌐 ${websiteUrl}\n\n` +
-              `🔄 Membuat session deployment...`
+              `🔄 Membuat session deployment...`,
+        contextInfo: contextInfoConfig
       });
 
       // Create session di backend
@@ -386,9 +376,6 @@ let handler = async (m, { conn }) => {
       const { sessionId, uploadUrl } = sessionResponse.data;
       const fullUploadUrl = `${URL_HOME}${uploadUrl}`;
 
-      // Update user state
-      userState[userId] = { ...userState[userId], sessionId, step: 'upload' };
-
       // Step 5: Kirim instruksi upload dengan CTA buttons
       const uploadInstructionMsg = generateWAMessageFromContent(
         chatId,
@@ -396,6 +383,7 @@ let handler = async (m, { conn }) => {
           viewOnceMessage: {
             message: {
               messageContextInfo: {
+                ...contextInfoConfig,
                 deviceListMetadata: {},
                 deviceListMetadataVersion: 2
               },
@@ -451,19 +439,15 @@ let handler = async (m, { conn }) => {
       // Step 6: Monitor deployment
       await monitorDeployment(conn, chatId, sessionId, userId, projectName, subdomain);
 
-      // Hapus state setelah deployment dimulai
-      delete userState[userId];
-
     } else {
       await conn.sendMessage(chatId, {
-        text: `❌ *Respon Tidak Dikenali* \n\nDeployment dibatalkan. Ketik *.deploy* untuk memulai ulang.`
+        text: `❌ *Respon Tidak Dikenali* \n\nDeployment dibatalkan. Ketik *.deploy* untuk memulai ulang.`,
+        contextInfo: contextInfoConfig
       });
-      delete userState[userId];
     }
 
   } catch (error) {
     console.error("Deploy Error:", error);
-    delete userState[userId];
     
     let errorMsg = `❌ *DEPLOYMENT GAGAL* \n${'═'.repeat(30)}\n`;
     
@@ -487,6 +471,7 @@ let handler = async (m, { conn }) => {
         viewOnceMessage: {
           message: {
             messageContextInfo: {
+              ...contextInfoConfig,
               deviceListMetadata: {},
               deviceListMetadataVersion: 2
             },
@@ -522,36 +507,85 @@ let handler = async (m, { conn }) => {
   }
 };
 
-// Fungsi untuk cek status deployment
+// Fungsi untuk cek status deployment (diperbaiki)
 async function checkDeploymentStatus(conn, chatId, sessionId) {
   try {
+    await conn.sendMessage(chatId, {
+      text: `🔍 *Mengecek Status Deployment...*\nSession ID: ${sessionId}`,
+      contextInfo: contextInfoConfig
+    });
+
     const statusResponse = await axios.get(`${DEPLOY_API_URL}/deployment-status/${sessionId}`);
     
     if (statusResponse.data.success) {
       const { status, deployment, message } = statusResponse.data;
       
       if (status === 'success' && deployment) {
-        await conn.sendMessage(chatId, {
-          text: `✅ *DEPLOYMENT SUCCESS* \n\nWebsite: ${deployment.url}\nStatus: Live 🟢`
-        });
+        const successMsg = generateWAMessageFromContent(
+          chatId,
+          {
+            viewOnceMessage: {
+              message: {
+                messageContextInfo: {
+                  ...contextInfoConfig,
+                  deviceListMetadata: {},
+                  deviceListMetadataVersion: 2
+                },
+                interactiveMessage: {
+                  body: { 
+                    text: `✅ *DEPLOYMENT SUCCESS* \n\n` +
+                          `📛 Project: ${deployment.projectName}\n` +
+                          `🌐 Website: ${deployment.url}\n` +
+                          `📅 Waktu: ${new Date(deployment.createdAt).toLocaleString('id-ID')}\n` +
+                          `⚡ Status: Live 🟢`
+                  },
+                  footer: { text: "Ess Cloud Deployment" },
+                  nativeFlowMessage: {
+                    buttons: [
+                      {
+                        name: "cta_url",
+                        buttonParamsJson: JSON.stringify({
+                          display_text: "🌐 Buka Website",
+                          url: deployment.url
+                        })
+                      },
+                      {
+                        name: "cta_copy",
+                        buttonParamsJson: JSON.stringify({
+                          display_text: "📋 Copy URL",
+                          copy_code: deployment.url
+                        })
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          { quoted: null }
+        );
+        await conn.relayMessage(chatId, successMsg.message, { messageId: successMsg.key.id });
       } else if (status === 'failed') {
         await conn.sendMessage(chatId, {
-          text: `❌ *DEPLOYMENT FAILED* \n\nError: ${message}`
+          text: `❌ *DEPLOYMENT FAILED* \n\nError: ${message}`,
+          contextInfo: contextInfoConfig
         });
       } else {
         await conn.sendMessage(chatId, {
-          text: `⏳ *DEPLOYMENT IN PROGRESS* \n\nStatus: ${message || 'Processing...'}`
+          text: `⏳ *DEPLOYMENT IN PROGRESS* \n\nStatus: ${message || 'Processing...'}\n\nGunakan *.checkstatus ${sessionId}* untuk refresh`,
+          contextInfo: contextInfoConfig
         });
       }
     }
   } catch (error) {
     await conn.sendMessage(chatId, {
-      text: `❌ *Gagal cek status* \n\nError: ${error.message}`
+      text: `❌ *Gagal cek status* \n\nError: ${error.message}`,
+      contextInfo: contextInfoConfig
     });
   }
 }
 
-// Monitor deployment dengan CTA buttons
+// Monitor deployment dengan CTA buttons (diperbaiki)
 async function monitorDeployment(conn, chatId, sessionId, userId, projectName, subdomain) {
   let attempts = 0;
   const maxAttempts = 60;
@@ -564,6 +598,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
       viewOnceMessage: {
         message: {
           messageContextInfo: {
+            ...contextInfoConfig,
             deviceListMetadata: {},
             deviceListMetadataVersion: 2
           },
@@ -621,6 +656,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
               viewOnceMessage: {
                 message: {
                   messageContextInfo: {
+                    ...contextInfoConfig,
                     deviceListMetadata: {},
                     deviceListMetadataVersion: 2
                   },
@@ -635,7 +671,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
                             `💡 *Tips:*\n` +
                             `• DNS mungkin butuh 2-30 menit untuk propagasi penuh\n` +
                             `• Buka website untuk testing\n` +
-                            `• Gunakan *.listdeploy* untuk lihat semua website`
+                            `• Gunakan *.deploy* untuk buat website baru`
                     },
                     footer: { text: "Ess Cloud Deployment" },
                     nativeFlowMessage: {
@@ -657,8 +693,8 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
                         {
                           name: "quick_reply",
                           buttonParamsJson: JSON.stringify({
-                            display_text: "📋 List Website Saya",
-                            id: ".listdeploy"
+                            display_text: "🚀 Buat Website Baru",
+                            id: ".deploy"
                           })
                         }
                       ]
@@ -680,9 +716,18 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
                   `📛 ${projectName} \n` +
                   `🌐 ${websiteUrl} \n\n` +
                   `💥 Error: ${message || 'Unknown error'} \n\n` +
-                  `🔄 Silakan coba lagi dengan *.deploy*`
+                  `🔄 Silakan coba lagi dengan *.deploy*`,
+            contextInfo: contextInfoConfig
           });
           return true;
+        }
+        
+        // Update status setiap 10 detik
+        if (attempts % 2 === 0) {
+          await conn.sendMessage(chatId, {
+            text: `⏳ *Still Monitoring...* \n\nStatus: ${message || 'Processing...'}\nAttempt: ${attempts}/${maxAttempts}`,
+            contextInfo: contextInfoConfig
+          });
         }
       }
     } catch (error) {
@@ -696,6 +741,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
           viewOnceMessage: {
             message: {
               messageContextInfo: {
+                ...contextInfoConfig,
                 deviceListMetadata: {},
                 deviceListMetadataVersion: 2
               },
@@ -705,7 +751,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
                         `📛 ${projectName}\n` +
                         `🌐 ${websiteUrl}\n\n` +
                         `Deployment masih diproses. Cek website Anda secara manual dalam beberapa menit.\n\n` +
-                        `Gunakan *.listdeploy* untuk melihat status deployment.`
+                        `Gunakan *.checkstatus ${sessionId}* untuk cek status terbaru.`
                 },
                 footer: { text: "Ess Cloud Deployment" },
                 nativeFlowMessage: {
@@ -720,8 +766,8 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
                     {
                       name: "quick_reply",
                       buttonParamsJson: JSON.stringify({
-                        display_text: "📋 List Website",
-                        id: ".listdeploy"
+                        display_text: "🔄 Refresh Status",
+                        id: `.checkstatus ${sessionId}`
                       })
                     }
                   ]
@@ -786,9 +832,6 @@ function extractTextFromMessage(msg) {
     ""
   );
 }
-
-// Export quick reply handlers
-handler.quickReplyHandlers = quickReplyHandlers;
 
 // Command handlers
 handler.help = ["deploy"];
