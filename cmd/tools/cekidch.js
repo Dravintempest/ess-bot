@@ -10,7 +10,7 @@ let handler = async (m, { conn, args, prefix, command }) => {
         if (!text.includes("https://whatsapp.com/channel/")) 
             return m.reply("❌ Link tautan tidak valid!")
 
-        const sid = link.split('https://whatsapp.com/channel/')[1]
+        const sid = text.split('https://whatsapp.com/channel/')[1]
     const SLink = `https://chat.whatsapp.com/${sid}`
 
 
