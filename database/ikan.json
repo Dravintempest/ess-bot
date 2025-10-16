@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "nama": "Ikan Mas",
+    "harga": 1000,
+    "rarity": "common",
+    "lokasi": "Sungai",
+    "berat_min": 0.5,
+    "berat_max": 2.0,
+    "deskripsi": "Ikan emas yang cantik"
+  },
+  {
+    "id": 2,
+    "nama": "Ikan Lele",
+    "harga": 1500,
+    "rarity": "common", 
+    "lokasi": "Sungai",
+    "berat_min": 1.0,
+    "berat_max": 3.0,
+    "deskripsi": "Ikan berkumis yang lezat"
+  },
+  {
+    "id": 3,
+    "nama": "Ikan Nila",
+    "harga": 2000,
+    "rarity": "common",
+    "lokasi": "Danau",
+    "berat_min": 0.8,
+    "berat_max": 2.5,
+    "deskripsi": "Ikan air tawar yang populer"
+  },
+  {
+    "id": 4,
+    "nama": "Ikan Arwana",
+    "harga": 15000,
+    "rarity": "rare",
+    "lokasi": "Sungai",
+    "berat_min": 2.0,
+    "berat_max": 5.0,
+    "deskripsi": "Ikan hias yang mahal"
+  },
+  {
+    "id": 5,
+    "nama": "Ikan Hiu",
+    "harga": 50000,
+    "rarity": "legendary",
+    "lokasi": "Laut",
+    "berat_min": 50,
+    "berat_max": 200,
+    "deskripsi": "Predator laut yang ganas"
+  },
+  {
+    "id": 6,
+    "nama": "Ikan Paus",
+    "harga": 100000,
+    "rarity": "mythic", 
+    "lokasi": "Laut Dalam",
+    "berat_min": 1000,
+    "berat_max": 5000,
+    "deskripsi": "Raja lautan yang legendaris"
+  }
+]

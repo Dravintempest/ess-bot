@@ -1,0 +1,50 @@
+{
+  "upgrades": {
+    "pancing_biasa": {
+      "nama": "Pancing Biasa",
+      "harga": 0,
+      "rare_rate": 1.0,
+      "level": 1
+    },
+    "pancing_baja": {
+      "nama": "Pancing Baja",
+      "harga": 5000,
+      "rare_rate": 1.5,
+      "level": 2
+    },
+    "pancing_emas": {
+      "nama": "Pancing Emas", 
+      "harga": 20000,
+      "rare_rate": 2.0,
+      "level": 3
+    },
+    "pancing_magic": {
+      "nama": "Pancing Magic",
+      "harga": 50000,
+      "rare_rate": 3.0,
+      "level": 4
+    }
+  },
+  "shop": {
+    "umpan_biasa": {
+      "nama": "Umpan Biasa",
+      "harga": 100,
+      "effect": "+10% chance ikan"
+    },
+    "umpan_premium": {
+      "nama": "Umpan Premium", 
+      "harga": 500,
+      "effect": "+25% chance ikan rare"
+    },
+    "perahu_kayu": {
+      "nama": "Perahu Kayu",
+      "harga": 10000,
+      "effect": "Akses area laut"
+    },
+    "jaring_ikan": {
+      "nama": "Jaring Ikan",
+      "harga": 3000,
+      "effect": "Bisa tangkap 2 ikan sekaligus"
+    }
+  }
+}
