@@ -187,6 +187,204 @@ function saveTests(obj){
    
 
     switch (commands) {
+
+      case 'mancing': {
+    const cooldownFile = './database/cooldown.json';
+    const cooldowns = loadJSON(cooldownFile);
+    const userId = m.sender;
+    
+    if (cooldowns[userId] && Date.now() - cooldowns[userId] < 30000) {
+        const remaining = Math.ceil((30000 - (Date.now() - cooldowns[userId])) / 1000);
+        return m.reply(`⏰ Lagi cooldown nih! Tunggu ${remaining} detik lagi.`);
+    }
+    
+    cooldowns[userId] = Date.now();
+    saveJSON(cooldownFile, cooldowns);
+    
+    // Animasi mancing
+    let anim = ['🎣 Memancing...', '🎣 Memancing..', '🎣 Memancing.'];
+    for (let i = 0; i < 3; i++) {
+        await sock.sendMessage(m.key.remoteJid, { text: anim[i] }, { quoted: m });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    const hasilIkan = getRandomIkan();
+    const inventory = loadJSON('./database/inventory.json');
+    
+    if (!inventory[userId]) inventory[userId] = [];
+    inventory[userId].push(hasilIkan);
+    saveJSON('./database/inventory.json', inventory);
+    
+    m.reply(`🎉 Selamat! Kamu dapat:\n*${hasilIkan.nama}*\nBerat: ${hasilIkan.berat}kg\nHarga: Rp${hasilIkan.harga.toLocaleString()}\nRarity: ${hasilIkan.rarity}`);
+}
+break;
+
+case 'fishlist': case 'ikan': {
+    const ikanData = loadJSON('./database/ikan.json');
+    let list = "*🎣 DAFTAR IKAN 🎣*\n\n";
+    
+    ikanData.forEach(ikan => {
+        list += `*${ikan.nama}*\n` +
+               `💰 Harga: Rp${ikan.harga.toLocaleString()}\n` +
+               `⭐ Rarity: ${ikan.rarity}\n` +
+               `📍 Lokasi: ${ikan.lokasi}\n` +
+               `📏 Berat: ${ikan.berat_min}-${ikan.berat_max}kg\n\n`;
+    });
+    
+    m.reply(list.trim());
+}
+break;
+
+case 'inventory': case 'tasikan': {
+    const inventory = loadJSON('./database/inventory.json');
+    const userId = m.sender;
+    
+    if (!inventory[userId] || inventory[userId].length === 0) {
+        return m.reply("📭 Inventory kamu kosong! Ayo mancing dulu (.mancing)");
+    }
+    
+    let list = "*🎒 INVENTORY IKAN 🎒*\n\n";
+    let totalValue = 0;
+    
+    inventory[userId].forEach((ikan, index) => {
+        list += `${index + 1}. *${ikan.nama}*\n` +
+               `   Berat: ${ikan.berat}kg | Harga: Rp${ikan.harga.toLocaleString()}\n`;
+        totalValue += ikan.harga;
+    });
+    
+    list += `\n💰 *Total Value:* Rp${totalValue.toLocaleString()}`;
+    m.reply(list);
+}
+break;
+
+case 'sellfish': case 'jualikan': {
+    const inventory = loadJSON('./database/inventory.json');
+    const userId = m.sender;
+    
+    if (!inventory[userId] || inventory[userId].length === 0) {
+        return m.reply("❌ Tidak ada ikan untuk dijual!");
+    }
+    
+    let totalEarned = 0;
+    let itemsSold = inventory[userId].length;
+    
+    inventory[userId].forEach(ikan => {
+        totalEarned += ikan.harga;
+    });
+    
+    // Update user money (asumsi ada database money)
+    const users = loadJSON('./database/users.json');
+    if (!users[userId]) users[userId] = { money: 0, fishCaught: 0 };
+    users[userId].money += totalEarned;
+    users[userId].fishCaught += itemsSold;
+    
+    // Clear inventory
+    inventory[userId] = [];
+    
+    saveJSON('./database/inventory.json', inventory);
+    saveJSON('./database/users.json', users);
+    
+    m.reply(`✅ Berhasil menjual ${itemsSold} ikan!\n💰 Mendapat: Rp${totalEarned.toLocaleString()}\n💵 Uang sekarang: Rp${users[userId].money.toLocaleString()}`);
+}
+break;
+
+case 'jual': {
+    const args = m.text.split(' ');
+    if (args.length < 3) return m.reply("❌ Format: .jual <nama_ikan> <jumlah>");
+    
+    const ikanName = args[1].toLowerCase();
+    const jumlah = parseInt(args[2]);
+    const inventory = loadJSON('./database/inventory.json');
+    const userId = m.sender;
+    
+    if (!inventory[userId]) return m.reply("❌ Inventory kosong!");
+    
+    const filteredIkan = inventory[userId].filter(ikan => 
+        ikan.nama.toLowerCase().includes(ikanName)
+    );
+    
+    if (filteredIkan.length === 0) return m.reply("❌ Ikan tidak ditemukan!");
+    
+    const toSell = filteredIkan.slice(0, jumlah);
+    const totalEarned = toSell.reduce((sum, ikan) => sum + ikan.harga, 0);
+    
+    // Remove from inventory
+    toSell.forEach(ikanToRemove => {
+        const index = inventory[userId].findIndex(ikan => 
+            ikan.nama === ikanToRemove.nama && ikan.berat === ikanToRemove.berat
+        );
+        if (index > -1) inventory[userId].splice(index, 1);
+    });
+    
+    // Update user money
+    const users = loadJSON('./database/users.json');
+    if (!users[userId]) users[userId] = { money: 0 };
+    users[userId].money += totalEarned;
+    
+    saveJSON('./database/inventory.json', inventory);
+    saveJSON('./database/users.json', users);
+    
+    m.reply(`✅ Berhasil menjual ${toSell.length} ${ikanName}!\n💰 Mendapat: Rp${totalEarned.toLocaleString()}`);
+}
+break;
+
+case 'fishinfo': {
+    const args = m.text.split(' ');
+    if (args.length < 2) return m.reply("❌ Format: .fishinfo <nama_ikan>");
+    
+    const ikanName = args.slice(1).join(' ').toLowerCase();
+    const ikanData = loadJSON('./database/ikan.json');
+    
+    const ikan = ikanData.find(i => 
+        i.nama.toLowerCase().includes(ikanName)
+    );
+    
+    if (!ikan) return m.reply("❌ Ikan tidak ditemukan!");
+    
+    const info = `*🐟 INFO ${ikan.nama.toUpperCase()} 🐟*\n\n` +
+                `📛 Nama: ${ikan.nama}\n` +
+                `💰 Harga: Rp${ikan.harga.toLocaleString()}\n` +
+                `⭐ Rarity: ${ikan.rarity}\n` +
+                `📍 Lokasi: ${ikan.lokasi}\n` +
+                `⚖️ Berat: ${ikan.berat_min}-${ikan.berat_max}kg\n` +
+                `📝 Deskripsi: ${ikan.deskripsi}`;
+    
+    m.reply(info);
+}
+break;
+
+case 'fishtop': {
+    const users = loadJSON('./database/users.json');
+    const inventory = loadJSON('./database/inventory.json');
+    
+    let leaderboard = [];
+    
+    Object.entries(users).forEach(([userId, userData]) => {
+        const userFish = inventory[userId] || [];
+        const totalValue = userFish.reduce((sum, ikan) => sum + ikan.harga, 0);
+        
+        leaderboard.push({
+            userId,
+            totalValue,
+            fishCaught: userData.fishCaught || 0
+        });
+    });
+    
+    leaderboard.sort((a, b) => b.totalValue - a.totalValue);
+    
+    let topList = "*🏆 LEADERBOARD MANCING 🏆*\n\n";
+    
+    leaderboard.slice(0, 10).forEach((user, index) => {
+        const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
+        topList += `${rank} @${user.userId.split('@')[0]}\n` +
+                  `   💰 Total: Rp${user.totalValue.toLocaleString()}\n` +
+                  `   🎣 Tangkapan: ${user.fishCaught} ikan\n\n`;
+    });
+    
+    m.reply(topList.trim());
+}
+break;
+      
       case "mode": {
         m.reply(`🤖 Bot Mode: ${conn.public ? "Public" : "Self"}`);
       }
