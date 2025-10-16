@@ -1,4 +1,4 @@
-// deploy.js - Bot WA Deployment dengan CTA Copy & URL + Quick Reply + List Deploy
+// deploy.js - Bot WA Deployment dengan CTA Copy & URL + Quick Reply
 import fs from "fs-extra";
 import axios from "axios";
 import pkg from '@whiskeysockets/baileys'
@@ -6,7 +6,7 @@ const { proto, generateWAMessageFromContent } = pkg
 
 const DEPLOY_API_URL = "https://www.esscloud.my.id/api";
 const URL_HOME = "https://www.esscloud.my.id";
-const DEPLOY_DATA_FILE = './deploy.json';
+const DEPLOY_DATA_FILE = './database/deploy.json';
 
 // Config untuk externalAdReply
 const contextInfoConfig = {
@@ -116,181 +116,6 @@ function getUserDeployments(userId) {
   return data.users[userId]?.deployments || [];
 }
 
-// Handler untuk list deployments
-async function listDeployments(m, conn) {
-  const chatId = m.chat;
-  const userId = m.sender.split('@')[0];
-  const isGroup = m.chat.endsWith('@g.us');
-  
-  try {
-    // Jika di grup, kirim ke private chat
-    if (isGroup) {
-      await conn.sendMessage(m.sender, {
-        text: `📋 Mengambil daftar deployment Anda...`,
-        contextInfo: contextInfoConfig
-      });
-      
-      await conn.sendMessage(chatId, {
-        text: `📩 @${userId}, saya kirim daftar deployment ke private chat Anda.`,
-        mentions: [m.sender],
-        contextInfo: contextInfoConfig
-      });
-      return;
-    }
-
-    await conn.sendMessage(chatId, {
-      text: "📋 Mengambil daftar deployment Anda...",
-      contextInfo: contextInfoConfig
-    });
-    
-    const deployments = getUserDeployments(userId);
-    
-    if (deployments.length > 0) {
-      let message = `📦 *DAFTAR WEBSITE ANDA* \n${'═'.repeat(30)}\n\n`;
-      
-      deployments.forEach((deploy, index) => {
-        const date = new Date(deploy.createdAt).toLocaleDateString('id-ID', {
-          day: 'numeric',
-          month: 'long', 
-          year: 'numeric'
-        });
-        
-        const statusIcon = deploy.status === 'success' ? '✅' : 
-                          deploy.status === 'failed' ? '❌' : '⏳';
-        
-        message += `*${index + 1}. ${deploy.projectName}*\n`;
-        message += `🌐 ${deploy.url || `https://${deploy.subdomain}.esscloud.web.id`}\n`;
-        message += `📅 ${date}\n`;
-        message += `⚡ Status: ${statusIcon} ${deploy.status}\n`;
-        message += `${'─'.repeat(25)}\n\n`;
-      });
-      
-      message += `📊 Total: ${deployments.length} Website\n`;
-      message += `🚀 Gunakan *.deploy* untuk buat website baru`;
-
-      // Kirim dengan tombol interaktif
-      const listMessage = generateWAMessageFromContent(
-        chatId,
-        {
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: {
-                ...contextInfoConfig,
-                deviceListMetadata: {},
-                deviceListMetadataVersion: 2
-              },
-              interactiveMessage: {
-                body: { text: message },
-                footer: { text: "Ess Cloud Deployment" },
-                nativeFlowMessage: {
-                  buttons: [
-                    {
-                      name: "quick_reply",
-                      buttonParamsJson: JSON.stringify({
-                        display_text: "🚀 Buat Website Baru",
-                        id: ".deploy"
-                      })
-                    },
-                    {
-                      name: "cta_copy", 
-                      buttonParamsJson: JSON.stringify({
-                        display_text: "📋 Copy List",
-                        copy_code: message
-                      })
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        { quoted: m }
-      );
-
-      await conn.relayMessage(chatId, listMessage.message, { messageId: listMessage.key.id });
-      
-    } else {
-      const emptyMessage = generateWAMessageFromContent(
-        chatId,
-        {
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: {
-                ...contextInfoConfig,
-                deviceListMetadata: {},
-                deviceListMetadataVersion: 2
-              },
-              interactiveMessage: {
-                body: { 
-                  text: `📭 *BELUM ADA WEBSITE* \n${'═'.repeat(30)}\n\n` +
-                        `Anda belum memiliki website.\n` +
-                        `Yuk buat website pertama Anda!\n\n` +
-                        `Ketik *.deploy* untuk memulai! 🚀`
-                },
-                footer: { text: "Ess Cloud Deployment" },
-                nativeFlowMessage: {
-                  buttons: [
-                    {
-                      name: "quick_reply",
-                      buttonParamsJson: JSON.stringify({
-                        display_text: "🚀 Buat Website",
-                        id: ".deploy"
-                      })
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        },
-        { quoted: m }
-      );
-
-      await conn.relayMessage(chatId, emptyMessage.message, { messageId: emptyMessage.key.id });
-    }
-  } catch (error) {
-    console.error("ListDeploy Error:", error);
-    
-    const errorMessage = generateWAMessageFromContent(
-      chatId,
-      {
-        viewOnceMessage: {
-          message: {
-            messageContextInfo: {
-              ...contextInfoConfig,
-              deviceListMetadata: {},
-              deviceListMetadataVersion: 2
-            },
-            interactiveMessage: {
-              body: { 
-                text: `❌ *Gagal Mengambil Data* \n\n` +
-                      `Pastikan Anda sudah pernah deploy website.\n` +
-                      `Gunakan *.deploy* untuk buat website pertama!`
-              },
-              footer: { text: "Ess Cloud Deployment" },
-              nativeFlowMessage: {
-                buttons: [
-                  {
-                    name: "quick_reply",
-                    buttonParamsJson: JSON.stringify({
-                      display_text: "🚀 Buat Website",
-                      id: ".deploy"
-                    })
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      { quoted: m }
-    );
-
-    await conn.relayMessage(chatId, errorMessage.message, { messageId: errorMessage.key.id });
-  }
-}
-
-// Main handler untuk deploy
 let handler = async (m, { conn }) => {
   const chatId = m.chat;
   const userId = m.sender.split('@')[0];
@@ -321,10 +146,10 @@ let handler = async (m, { conn }) => {
     // ========== PROSES DEPLOYMENT DI PRIVATE CHAT ==========
     
     // Step 1: Kirim format dengan tombol copy interaktif
-    const deployFormat = `📋 *FORMAT DEPLOYMENT* \n${'═'.repeat(30)}\n\n` +
+    const deployFormat = `📋 *FORMAT DEPLOYMENT* \n${'═'.repeat(20)}\n\n` +
                         `project: Nama Project Anda\n` +
                         `subdomain: subdomain-anda\n\n` +
-                        `${'═'.repeat(30)}\n` +
+                        `${'═'.repeat(20)}\n` +
                         `📝 *Contoh Pengisian:*\n` +
                         `project: My Portfolio Website\n` +
                         `subdomain: myportfolio123\n\n` +
@@ -378,7 +203,7 @@ let handler = async (m, { conn }) => {
 
     // Step 2: Tunggu user mengisi format
     await conn.sendMessage(chatId, {
-      text: `🔄 *LANGKAH SELANJUTNYA* \n${'═'.repeat(30)}\n\n` +
+      text: `🔄 *LANGKAH SELANJUTNYA* \n${'═'.repeat(20)}\n\n` +
             `1. 📋 Copy format di atas\n` +
             `2. 📝 Edit dengan data project Anda\n` +
             `3. 📤 Kirim format yang sudah diisi di sini\n\n` +
@@ -421,7 +246,7 @@ let handler = async (m, { conn }) => {
                 },
                 interactiveMessage: {
                   body: { 
-                    text: `❌ *FORMAT TIDAK VALID* \n${'═'.repeat(30)}\n\n` +
+                    text: `❌ *FORMAT TIDAK VALID* \n${'═'.repeat(20)}\n\n` +
                           `Pastikan format sesuai contoh:\n\n` +
                           `project: Nama Project Anda\n` +
                           `subdomain: subdomain-anda\n\n` +
@@ -515,7 +340,7 @@ let handler = async (m, { conn }) => {
             },
             interactiveMessage: {
               body: { 
-                text: `📋 *KONFIRMASI DEPLOYMENT* \n${'═'.repeat(30)}\n\n` +
+                text: `📋 *KONFIRMASI DEPLOYMENT* \n${'═'.repeat(20)}\n\n` +
                       `📛 *Project:* ${projectName}\n` +
                       `🌐 *Subdomain:* ${subdomain}\n` +
                       `🔗 *Website:* ${websiteUrl}\n\n` +
@@ -621,7 +446,7 @@ let handler = async (m, { conn }) => {
         responseText.toLowerCase().includes('ya') || responseText.toLowerCase().includes('deploy')) {
       
       await conn.sendMessage(chatId, {
-        text: `⏳ *MEMULAI DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
+        text: `⏳ *MEMULAI DEPLOYMENT...* \n${'═'.repeat(20)}\n\n` +
               `📛 ${projectName}\n` +
               `🌐 ${websiteUrl}\n\n` +
               `🔄 Membuat session deployment...`,
@@ -663,10 +488,10 @@ let handler = async (m, { conn }) => {
               },
               interactiveMessage: {
                 body: { 
-                  text: `🎉 *SESSION BERHASIL DIBUAT!* \n${'═'.repeat(30)}\n\n` +
+                  text: `🎉 *SESSION BERHASIL DIBUAT!* \n${'═'.repeat(20)}\n\n` +
                         `📛 *Project:* ${projectName}\n` +
                         `🌐 *Website:* ${websiteUrl}\n` +
-                        `📦 *Session ID:* ${sessionId}\n${'═'.repeat(30)}\n\n` +
+                        `📦 *Session ID:* ${sessionId}\n${'═'.repeat(20)}\n\n` +
                         `📎 *LINK UPLOAD:*\n${fullUploadUrl}\n\n` +
                         `📋 *Langkah Selanjutnya:*\n` +
                         `1. 📂 Buka link upload di atas\n` +
@@ -723,7 +548,7 @@ let handler = async (m, { conn }) => {
   } catch (error) {
     console.error("Deploy Error:", error);
     
-    let errorMsg = `❌ *DEPLOYMENT GAGAL* \n${'═'.repeat(30)}\n`;
+    let errorMsg = `❌ *DEPLOYMENT GAGAL* \n${'═'.repeat(20)}\n`;
     
     if (error.message.includes('subdomain')) {
       errorMsg += `🌐 *Error Subdomain:* ${error.message} \n\n`;
@@ -781,7 +606,7 @@ let handler = async (m, { conn }) => {
   }
 };
 
-// Fungsi untuk cek status deployment (diperbaiki)
+// Fungsi untuk cek status deployment
 async function checkDeploymentStatus(conn, chatId, sessionId) {
   try {
     await conn.sendMessage(chatId, {
@@ -863,7 +688,7 @@ async function checkDeploymentStatus(conn, chatId, sessionId) {
   }
 }
 
-// Monitor deployment dengan edit pesan (diperbaiki)
+// Monitor deployment dengan edit pesan
 async function monitorDeployment(conn, chatId, sessionId, userId, projectName, subdomain) {
   let attempts = 0;
   const maxAttempts = 60;
@@ -871,7 +696,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
 
   // Kirim pesan monitoring pertama dan simpan ID-nya
   const monitoringMsg = await conn.sendMessage(chatId, {
-    text: `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
+    text: `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(20)}\n\n` +
           `📛 ${projectName}\n` +
           `🌐 ${websiteUrl}\n\n` +
           `⏳ Status: Menunggu upload file...\n` +
@@ -908,11 +733,11 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
           updateDeploymentStatus(sessionId, 'success', deployment);
           
           // Edit pesan terakhir dengan hasil success
-          const successText = `🎉 *DEPLOYMENT BERHASIL!* \n${'═'.repeat(30)}\n\n` +
+          const successText = `🎉 *DEPLOYMENT BERHASIL!* \n${'═'.repeat(20)}\n\n` +
                             `📛 *Project:* ${deployment.projectName}\n` +
                             `🌐 *Website:* ${deployment.url}\n` +
                             `📅 *Waktu:* ${new Date(deployment.createdAt).toLocaleString('id-ID')}\n` +
-                            `⚡ *Server:* ${deployment.server}\n${'═'.repeat(30)}\n\n` +
+                            `⚡ *Server:* ${deployment.server}\n${'═'.repeat(20)}\n\n` +
                             `✅ *Website Anda sudah LIVE!*\n\n` +
                             `💡 *Tips:*\n` +
                             `• DNS mungkin butuh 2-30 menit untuk propagasi penuh\n` +
@@ -973,7 +798,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
         else if (status === 'failed') {
           updateDeploymentStatus(sessionId, 'failed');
           
-          const failedText = `❌ *DEPLOYMENT GAGAL* \n${'═'.repeat(30)}\n` +
+          const failedText = `❌ *DEPLOYMENT GAGAL* \n${'═'.repeat(20)}\n` +
                            `📛 ${projectName} \n` +
                            `🌐 ${websiteUrl} \n\n` +
                            `💥 Error: ${message || 'Unknown error'} \n\n` +
@@ -985,7 +810,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
         
         // Update pesan dengan status terbaru
         const currentStatus = message || 'Processing...';
-        const progressText = `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
+        const progressText = `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(20)}\n\n` +
                            `📛 ${projectName}\n` +
                            `🌐 ${websiteUrl}\n\n` +
                            `⏳ Status: ${currentStatus}\n` +
@@ -999,7 +824,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
       console.error('Status check error:', error);
       
       // Update pesan dengan error
-      const errorText = `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(30)}\n\n` +
+      const errorText = `🔍 *MEMANTAU DEPLOYMENT...* \n${'═'.repeat(20)}\n\n` +
                        `📛 ${projectName}\n` +
                        `🌐 ${websiteUrl}\n\n` +
                        `❌ Error: Gagal cek status\n` +
@@ -1010,7 +835,7 @@ async function monitorDeployment(conn, chatId, sessionId, userId, projectName, s
     }
     
     if (attempts >= maxAttempts) {
-      const timeoutText = `⏰ *Monitoring Timeout* \n${'═'.repeat(30)}\n\n` +
+      const timeoutText = `⏰ *Monitoring Timeout* \n${'═'.repeat(20)}\n\n` +
                          `📛 ${projectName}\n` +
                          `🌐 ${websiteUrl}\n\n` +
                          `Deployment masih diproses. Cek website Anda secara manual dalam beberapa menit.\n\n` +
@@ -1073,7 +898,6 @@ function extractTextFromMessage(msg) {
 // Quick reply handlers
 const quickReplyHandlers = {
   '.deploy': handler,
-  '.listdeploy': listDeployments,
   '.confirmdeploy': async (m, conn) => {
     await conn.sendMessage(m.chat, { 
       text: "✅ Konfirmasi diterima! Melanjutkan deployment...",
@@ -1102,12 +926,6 @@ const quickReplyHandlers = {
         contextInfo: contextInfoConfig
       });
     }
-  },
-  '.help': async (m, conn) => {
-    await conn.sendMessage(m.chat, { 
-      text: `🆘 *BANTUAN DEPLOYMENT*\n\n.deploy - Buat website baru\n.listdeploy - List website Anda\n.checkstatus <id> - Cek status deploy\n.help - Bantuan`,
-      contextInfo: contextInfoConfig
-    });
   }
 };
 
@@ -1115,9 +933,9 @@ const quickReplyHandlers = {
 handler.quickReplyHandlers = quickReplyHandlers;
 
 // Command handlers
-handler.help = ["deploy", "listdeploy"];
+handler.help = ["deploy"];
 handler.tags = ["tools", "deployment"];
-handler.command = ["deploy", "deploywebsite", "listdeploy", "listwebsite", "websitesaya"];
+handler.command = ["deploy", "deploywebsite"];
 handler.register = true;
 
 export default handler;
