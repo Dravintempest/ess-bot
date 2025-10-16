@@ -23,6 +23,7 @@ import pino from "pino";
 import readline from "readline";
 import chalk from "chalk";
 import fs from "fs-extra";
+import gradient from 'gradient-string';
 import NodeCache from "node-cache";
 import fileType from 'file-type';
 const { fileTypeFromBuffer } = fileType;
@@ -634,4 +635,5 @@ fs.watchFile(file, () => {
     console.log(` ~> File updated: ${file}`);
     import(`${file}`);
 });
+
 
