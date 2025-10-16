@@ -184,6 +184,60 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
 function saveTests(obj){
   fs.writeFileSync('./tests.json', JSON.stringify(obj, null, 2));
 }
+
+ // Helper functions untuk JSON
+function loadJSON(file) {
+    const fs = require('fs');
+    try {
+        if (fs.existsSync(file)) {
+            return JSON.parse(fs.readFileSync(file));
+        }
+        return {};
+    } catch (error) {
+        console.log('Error loading JSON:', error);
+        return {};
+    }
+}
+
+function saveJSON(file, data) {
+    const fs = require('fs');
+    try {
+        fs.writeFileSync(file, JSON.stringify(data, null, 2));
+        return true;
+    } catch (error) {
+        console.log('Error saving JSON:', error);
+        return false;
+    }
+}
+
+function getRandomIkan() {
+    const ikanData = loadJSON('./database/ikan.json');
+    const rarityWeights = {
+        'common': 10,
+        'rare': 3, 
+        'legendary': 1,
+        'mythic': 0.5
+    };
+    
+    let totalWeight = 0;
+    ikanData.forEach(ikan => {
+        totalWeight += rarityWeights[ikan.rarity] || 1;
+    });
+    
+    let random = Math.random() * totalWeight;
+    
+    for (let ikan of ikanData) {
+        const weight = rarityWeights[ikan.rarity] || 1;
+        if (random < weight) {
+            return {
+                ...ikan,
+                berat: (Math.random() * (ikan.berat_max - ikan.berat_min) + ikan.berat_min).toFixed(2)
+            };
+        }
+        random -= weight;
+    }
+    return ikanData[0];
+}
    
 
     switch (commands) {
