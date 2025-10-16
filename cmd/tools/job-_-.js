@@ -1,12 +1,12 @@
 import "../../settings/config.js";
-import fs from "fs-extra";
+import fs from "fs";
 
 let handler = async (m, { conn, runtime, pushName, prefix }) => {
     const user = global.db.users[m.sender];
     
     function loadJSON(file) {
         try {
-            return fs.readJsonSync(file);
+            return JSON.parse(fs.readFileSync(file));
         } catch {
             return {};
         }
@@ -30,43 +30,43 @@ let handler = async (m, { conn, runtime, pushName, prefix }) => {
     }
     
     const text = `*💼 WORK MASTER MENU 💼*
-*Hello ${pushName}!*
+*Halo ${pushName}!*
 
-*📊 WORK STATS:*
+*📊 STATISTIK PEKERJAAN:*
 ▢ 🎯 Level: ${userWorkData.level}
 ▢ ⭐ EXP: ${createProgressBar(userWorkData.exp)}
-▢ 💰 Money: Rp${userWorkData.money.toLocaleString()}
-▢ 💼 Jobs Done: ${userWorkData.workCount || 0}
+▢ 💰 Uang: Rp${userWorkData.money.toLocaleString()}
+▢ 💼 Total Kerja: ${userWorkData.workCount || 0}
 ▢ ⚡ Energy: ${userWorkData.energy || 100}/100
 
 *💼 WORK COMMANDS:*
 ┌─「 💼 BASIC 」
-│ ▢ ${prefix}work <job> - Start working
-│ ▢ ${prefix}worklist - List all jobs
-│ ▢ ${prefix}mywork - My work stats
-│ ▢ ${prefix}energy - Check energy
-│ ▢ ${prefix}rest - Restore energy
+│ ▢ ${prefix}kerja <job> - Mulai bekerja
+│ ▢ ${prefix}listkerja - List semua pekerjaan
+│ ▢ ${prefix}kerjastats - Statistik kerja
+│ ▢ ${prefix}energy - Cek energy
+│ ▢ ${prefix}istirahat - Pulihkan energy
 └─
 
 ┌─「 📊 INFO 」
-│ ▢ ${prefix}workinfo <job> - Job details
+│ ▢ ${prefix}jobinfo <job> - Detail pekerjaan
 │ ▢ ${prefix}worktop - Leaderboard
-│ ▢ ${prefix}workstats - Detailed stats
-│ ▢ ${prefix}salary - Salary information
+│ ▢ ${prefix}workstats - Statistik detail
+│ ▢ ${prefix}gaji - Informasi gaji
 └─
 
 ┌─「 ⚙️ ADVANCED 」
-│ ▢ ${prefix}career - Career progress
-│ ▢ ${prefix}promote - Job promotion
-│ ▢ ${prefix}findjob - Find new jobs
-│ ▢ ${prefix}quitjob - Leave current job
+│ ▢ ${prefix}karir - Progress karir
+│ ▢ ${prefix}promosi - Promosi pekerjaan
+│ ▢ ${prefix}carikerja - Cari pekerjaan baru
+│ ▢ ${prefix}quitjob - Keluar dari pekerjaan
 └─
 
 *🔧 BOT INFO:*
 ▢ ⏱️ Runtime: ${runtime(process.uptime())}
 ▢ 👑 Role: ${user.role}
 ▢ 🎫 Limit: ${user.limit === Infinity ? '∞' : user.limit}
-▢ 📊 Total Commands: ${user.command}
+▢ 📊 Total Command: ${user.command}
 `;
 
     const footer = `${global.footer}`;
@@ -77,17 +77,17 @@ let handler = async (m, { conn, runtime, pushName, prefix }) => {
     const buttonData = [
         {
             title: `💼 Start Working`,
-            description: "Begin your career!",
-            id: `${prefix}worklist`
+            description: "Mulai karirmu sekarang!",
+            id: `${prefix}listkerja`
         },
         {
             title: `📊 Work Stats`,
-            description: "View work statistics",
+            description: "Lihat statistik lengkap",
             id: `${prefix}workstats`
         },
         {
             title: `🏆 Leaderboard`,
-            description: "Top worker rankings", 
+            description: "Peringkat worker terbaik", 
             id: `${prefix}worktop`
         }
     ];
