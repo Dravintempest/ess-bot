@@ -70,8 +70,8 @@ let handler = async (m, { conn, runtime, pushName, prefix }) => {
 `;
 
     const footer = `${global.footer}`;
-    const image1 = `https://files.catbox.moe/8x9p2q.png`;
-    const image2 = `https://files.catbox.moe/8x9p2q.png`;
+    const image1 = `https://files.catbox.moe/jlkib4.png`;
+    const image2 = `https://files.catbox.moe/jlkib4.png`;
     const btnklick = "💼 Work System";
 
     const buttonData = [
