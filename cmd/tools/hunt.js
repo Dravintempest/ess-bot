@@ -1,12 +1,12 @@
 import "../../settings/config.js";
-import fs from "fs-extra";
+import fs from "fs";
 
 let handler = async (m, { conn, runtime, pushName, prefix }) => {
     const user = global.db.users[m.sender];
     
     function loadJSON(file) {
         try {
-            return fs.readJsonSync(file);
+            return JSON.parse(fs.readFileSync(file));
         } catch {
             return {};
         }
@@ -38,65 +38,66 @@ let handler = async (m, { conn, runtime, pushName, prefix }) => {
     }
     
     const text = `*🎯 HUNTING MASTER MENU 🎯*
-*Hello ${pushName}!*
+*Halo ${pushName}!*
 
-*📊 HUNTING STATS:*
+*📊 STATISTIK BERBURU:*
 ▢ 🎯 Level: ${userHuntData.level}
 ▢ ⭐ EXP: ${createProgressBar(userHuntData.exp)}
-▢ 💰 Hunt Value: Rp${totalAnimalValue.toLocaleString()}
-▢ 🐾 Animals Caught: ${userHuntData.animalsCaught}
-▢ 📦 Inventory: ${animalInventory.length} animals
+▢ 💰 Nilai Buruan: Rp${totalAnimalValue.toLocaleString()}
+▢ 🐾 Total Tangkapan: ${userHuntData.animalsCaught}
+▢ 📦 Inventory: ${animalInventory.length} hewan
 ▢ ⚡ Energy: ${userHuntData.energy || 100}/100
 
 *🎯 HUNTING COMMANDS:*
 ┌─「 🎯 BASIC 」
-│ ▢ ${prefix}hunt <spot> - Start hunting
-│ ▢ ${prefix}huntlist - List hunting spots
-│ ▢ ${prefix}myhunt - My hunting stats
-│ ▢ ${prefix}sellanimals - Sell all animals
-│ ▢ ${prefix}sell <animal> - Sell specific
+│ ▢ ${prefix}buru <spot> - Mulai berburu
+│ ▢ ${prefix}listburu - List tempat berburu
+│ ▢ ${prefix}burustats - Statistik berburu
+│ ▢ ${prefix}jualhewan - Jual semua hewan
+│ ▢ ${prefix}jual <hewan> - Jual hewan tertentu
 └─
 
 ┌─「 📊 INFO 」
-│ ▢ ${prefix}huntinfo <animal> - Animal details
+│ ▢ ${prefix}hewaninfo <hewan> - Detail hewan
 │ ▢ ${prefix}hunttop - Leaderboard
-│ ▢ ${prefix}huntstats - Detailed stats
-│ ▢ ${prefix}animalinfo - Animal information
+│ ▢ ${prefix}huntstats - Statistik detail
+│ ▢ ${prefix}animaldex - Pokédex hewan
 └─
 
 ┌─「 ⚙️ ADVANCED 」
-│ ▢ ${prefix}track - Track animals
-│ ▢ ${prefix}setsnare - Set animal trap
-│ ▢ ${prefix}checktrap - Check traps
-│ ▢ ${prefix}upgradeskill - Improve hunting
+│ ▢ ${prefix}track - Lacak hewan
+│ ▢ ${prefix}pasangjebak - Pasang jebakan
+│ ▢ ${prefix}cekjebak - Cek jebakan
+│ ▢ ${prefix}upgradeskill - Tingkatkan skill
+│ ▢ ${prefix}burugift - Kirim hewan
 └─
 
 *🔧 BOT INFO:*
 ▢ ⏱️ Runtime: ${runtime(process.uptime())}
 ▢ 👑 Role: ${user.role}
 ▢ 🎫 Limit: ${user.limit === Infinity ? '∞' : user.limit}
-▢ 📊 Total Commands: ${user.command}
+▢ 📊 Total Command: ${user.command}
 `;
 
     const footer = `${global.footer}`;
-    const image1 = `https://files.catbox.moe/kj8x7w.png`;
-    const image2 = `https://files.catbox.moe/kj8x7w.png`;
+    const image1 = `https://files.catbox.moe/jlkib4.png`;
+    const image2 = `https://files.catbox.moe/jlkib4.png`;
     const btnklick = "🎯 Hunting System";
 
     const buttonData = [
         {
             title: `🎯 Start Hunting`,
-            description: "Begin your hunting adventure!",
-            id: `${prefix}huntlist`
+            description: "Mulai adventure berburu!",
+            id: `${prefix}listburu`
         },
         {
             title: `📊 Hunt Stats`,
-            description: "View hunting statistics",
+            description: "Lihat statistik lengkap",
             id: `${prefix}huntstats`
         },
         {
             title: `🏆 Leaderboard`,
-            description: "Top hunter rankings", 
+            description: "Peringkat hunter terbaik", 
             id: `${prefix}hunttop`
         }
     ];
