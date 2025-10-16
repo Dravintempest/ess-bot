@@ -1,0 +1,27 @@
+{
+    "cacing": {
+        "name": "🪱 Cacing Tanah",
+        "price": 100,
+        "description": "Umpan dasar untuk memancing"
+    },
+    "udang": {
+        "name": "🦐 Udang",
+        "price": 500,
+        "description": "Umpan yang lebih efektif"
+    },
+    "pelet": {
+        "name": "🎣 Pelet Premium",
+        "price": 1000,
+        "description": "Umpan premium untuk ikan langka"
+    },
+    "umpan_emas": {
+        "name": "🌟 Umpan Emas",
+        "price": 5000,
+        "description": "Umpan legendaris untuk ikan mythic"
+    },
+    "energy_drink": {
+        "name": "🥤 Energy Drink",
+        "price": 2000,
+        "description": "Minuman untuk memulihkan 50 energy"
+    }
+}

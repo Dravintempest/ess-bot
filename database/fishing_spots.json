@@ -1,0 +1,28 @@
+{
+    "sungai": {
+        "name": "🏞️ Sungai",
+        "difficulty": "easy",
+        "commonFish": 80,
+        "rareFish": 15,
+        "legendaryFish": 5,
+        "travelTime": 2000
+    },
+    "danau": {
+        "name": "🌊 Danau",
+        "difficulty": "medium",
+        "commonFish": 70,
+        "rareFish": 20,
+        "legendaryFish": 8,
+        "mythicFish": 2,
+        "travelTime": 3000
+    },
+    "laut": {
+        "name": "🌅 Laut",
+        "difficulty": "hard",
+        "commonFish": 60,
+        "rareFish": 25,
+        "legendaryFish": 10,
+        "mythicFish": 5,
+        "travelTime": 5000
+    }
+}

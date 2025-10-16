@@ -1,0 +1,13 @@
+    {
+    "kelinci": { "value": 2000, "meat": 1 },
+    "rusa": { "value": 5000, "meat": 3 },
+    "babi": { "value": 3000, "meat": 2 },
+    "burung": { "value": 1000, "meat": 1 },
+    "kambing": { "value": 4000, "meat": 2 },
+    "domba": { "value": 3500, "meat": 2 },
+    "elang": { "value": 6000, "meat": 1 },
+    "serigala": { "value": 7000, "meat": 2 },
+    "zebra": { "value": 8000, "meat": 4 },
+    "singa": { "value": 10000, "meat": 3 },
+    "cheetah": { "value": 9000, "meat": 2 }
+}

@@ -1,0 +1,26 @@
+{
+    "cacing": {
+        "name": "🪱 Cacing Tanah",
+        "price": 100,
+        "effectiveness": 1.0,
+        "rarityBonus": 1.0
+    },
+    "udang": {
+        "name": "🦐 Udang",
+        "price": 500,
+        "effectiveness": 1.3,
+        "rarityBonus": 1.2
+    },
+    "pelet": {
+        "name": "🎣 Pelet Premium",
+        "price": 1000,
+        "effectiveness": 1.6,
+        "rarityBonus": 1.5
+    },
+    "umpan_emas": {
+        "name": "🌟 Umpan Emas",
+        "price": 5000,
+        "effectiveness": 2.0,
+        "rarityBonus": 2.0
+    }
+}
