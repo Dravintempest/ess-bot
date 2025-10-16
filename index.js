@@ -42,6 +42,19 @@ global.mode = true;
 global.sessionName = "session";
 const pairingCode = process.argv.includes("pair");
 
+const banner = figlet.textSync("DRAVIN", { 
+    font: "Bloody"
+});
+
+const redGradient = gradient([
+    '#ff0000', 
+    '#cc0000', 
+    '#990000', 
+    '#660000' 
+]);
+
+console.log(redGradient.multiline(banner));
+
 console.log();
 console.log(
   chalk.bold.hex('#FF0000')('Dra') + chalk.bold.cyan('vin')
@@ -635,6 +648,7 @@ fs.watchFile(file, () => {
     console.log(` ~> File updated: ${file}`);
     import(`${file}`);
 });
+
 
 
 
