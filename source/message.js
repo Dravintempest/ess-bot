@@ -1,5 +1,4 @@
-
- /*
+/*
 
  * Thank you dev and friends
  * Fauzialifatah ( me )
@@ -48,6 +47,70 @@ import { leveluser } from '../source/events/_levelup.js';
 
 let prefix = ".";
 let mode = true;
+
+// Helper functions untuk JSON
+function loadJSON(file) {
+    try {
+        if (fs.existsSync(file)) {
+            return JSON.parse(fs.readFileSync(file));
+        }
+        return {};
+    } catch (error) {
+        console.log('Error loading JSON:', error);
+        return {};
+    }
+}
+
+function saveJSON(file, data) {
+    try {
+        fs.writeFileSync(file, JSON.stringify(data, null, 2));
+        return true;
+    } catch (error) {
+        console.log('Error saving JSON:', error);
+        return false;
+    }
+}
+
+function getRandomFish() {
+    const fishData = loadJSON('./database/ikan.json');
+    const rarityWeights = {
+        'common': 10,
+        'rare': 3, 
+        'legendary': 1,
+        'mythic': 0.5
+    };
+    
+    let totalWeight = 0;
+    fishData.forEach(fish => {
+        totalWeight += rarityWeights[fish.rarity] || 1;
+    });
+    
+    let random = Math.random() * totalWeight;
+    
+    for (let fish of fishData) {
+        const weight = rarityWeights[fish.rarity] || 1;
+        if (random < weight) {
+            return {
+                ...fish,
+                weight: (Math.random() * (fish.berat_max - fish.berat_min) + fish.berat_min).toFixed(2)
+            };
+        }
+        random -= weight;
+    }
+    return fishData[0];
+}
+
+function loadTests(){
+  try {
+    return JSON.parse(fs.readFileSync('./tests.json'));
+  } catch(e){
+    return {};
+  }
+}
+
+function saveTests(obj){
+  fs.writeFileSync('./tests.json', JSON.stringify(obj, null, 2));
+}
 
 export default async (conn, m) => {
   loadDataBase(conn, m);
@@ -149,7 +212,7 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
     const newRole = leveluser(user.command).rank;
     if (oldRole !== newRole) {
         user.role = newRole;
-        const upuser = `🎉 *SELAMAT NAIK LEVEL!* 🎉\n\n*Nama:* ${pushName}\n*Level Lama:* ${oldRole}\n*Level Baru:* ${newRole}\n\nTerus gunakan bot untuk mencapai level selanjutnya!`;
+        const upuser = `🎉 *LEVEL UP!* 🎉\n\n*Name:* ${pushName}\n*Old Level:* ${oldRole}\n*New Level:* ${newRole}\n\nKeep using bot to reach next level!`;
         
         conn.sendMessage(m.chat, { text: upuser }, { quoted: qtext });
     }
@@ -174,163 +237,108 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
         return;
     }
 
-   function loadTests(){
-  try {
-    return JSON.parse(fs.readFileSync('./tests.json'));
-  } catch(e){
-    return {};
-  }
-}
-function saveTests(obj){
-  fs.writeFileSync('./tests.json', JSON.stringify(obj, null, 2));
-}
-
- // Helper functions untuk JSON
-function loadJSON(file) {
-    const fs = require('fs');
-    try {
-        if (fs.existsSync(file)) {
-            return JSON.parse(fs.readFileSync(file));
-        }
-        return {};
-    } catch (error) {
-        console.log('Error loading JSON:', error);
-        return {};
-    }
-}
-
-function saveJSON(file, data) {
-    const fs = require('fs');
-    try {
-        fs.writeFileSync(file, JSON.stringify(data, null, 2));
-        return true;
-    } catch (error) {
-        console.log('Error saving JSON:', error);
-        return false;
-    }
-}
-
-function getRandomIkan() {
-    const ikanData = loadJSON('./database/ikan.json');
-    const rarityWeights = {
-        'common': 10,
-        'rare': 3, 
-        'legendary': 1,
-        'mythic': 0.5
-    };
-    
-    let totalWeight = 0;
-    ikanData.forEach(ikan => {
-        totalWeight += rarityWeights[ikan.rarity] || 1;
-    });
-    
-    let random = Math.random() * totalWeight;
-    
-    for (let ikan of ikanData) {
-        const weight = rarityWeights[ikan.rarity] || 1;
-        if (random < weight) {
-            return {
-                ...ikan,
-                berat: (Math.random() * (ikan.berat_max - ikan.berat_min) + ikan.berat_min).toFixed(2)
-            };
-        }
-        random -= weight;
-    }
-    return ikanData[0];
-}
-   
-
     switch (commands) {
 
-      case 'mancing': {
+      case 'fishing': case 'fish': {
     const cooldownFile = './database/cooldown.json';
     const cooldowns = loadJSON(cooldownFile);
     const userId = m.sender;
     
     if (cooldowns[userId] && Date.now() - cooldowns[userId] < 30000) {
         const remaining = Math.ceil((30000 - (Date.now() - cooldowns[userId])) / 1000);
-        return m.reply(`⏰ Lagi cooldown nih! Tunggu ${remaining} detik lagi.`);
+        return m.reply(`⏰ Cooldown! Wait ${remaining} seconds.`);
     }
     
     cooldowns[userId] = Date.now();
     saveJSON(cooldownFile, cooldowns);
     
-    // Animasi mancing
-    let anim = ['🎣 Memancing...', '🎣 Memancing..', '🎣 Memancing.'];
+    // Fishing animation
+    let anim = ['🎣 Fishing...', '🎣 Fishing..', '🎣 Fishing.'];
     for (let i = 0; i < 3; i++) {
-        await sock.sendMessage(m.key.remoteJid, { text: anim[i] }, { quoted: m });
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await conn.sendMessage(m.key.remoteJid, { text: anim[i] }, { quoted: m });
+        await sleep(1000);
     }
     
-    const hasilIkan = getRandomIkan();
+    const resultFish = getRandomFish();
     const inventory = loadJSON('./database/inventory.json');
     
     if (!inventory[userId]) inventory[userId] = [];
-    inventory[userId].push(hasilIkan);
+    inventory[userId].push(resultFish);
     saveJSON('./database/inventory.json', inventory);
     
-    m.reply(`🎉 Selamat! Kamu dapat:\n*${hasilIkan.nama}*\nBerat: ${hasilIkan.berat}kg\nHarga: Rp${hasilIkan.harga.toLocaleString()}\nRarity: ${hasilIkan.rarity}`);
+    // Update user stats
+    const users = loadJSON('./database/users.json');
+    if (!users[userId]) users[userId] = { money: 0, fishCaught: 0, level: 1, exp: 0 };
+    users[userId].fishCaught = (users[userId].fishCaught || 0) + 1;
+    users[userId].exp = (users[userId].exp || 0) + 5;
+    saveJSON('./database/users.json', users);
+    
+    m.reply(`🎉 *CONGRATULATIONS! YOU CAUGHT A FISH!* 🎉\n\n🐟 *${resultFish.nama}*\n⚖️ Weight: ${resultFish.weight}kg\n💰 Price: Rp${resultFish.harga.toLocaleString()}\n⭐ Rarity: ${resultFish.rarity}\n📍 ${resultFish.deskripsi}`);
 }
 break;
 
-case 'fishlist': case 'ikan': {
-    const ikanData = loadJSON('./database/ikan.json');
-    let list = "*🎣 DAFTAR IKAN 🎣*\n\n";
+case 'fishlist': case 'listfish': {
+    const fishData = loadJSON('./database/ikan.json');
+    let list = "🐟 *ALL FISH LIST* 🐟\n━━━━━━━━━━━━━━━━━━\n\n";
     
-    ikanData.forEach(ikan => {
-        list += `*${ikan.nama}*\n` +
-               `💰 Harga: Rp${ikan.harga.toLocaleString()}\n` +
-               `⭐ Rarity: ${ikan.rarity}\n` +
-               `📍 Lokasi: ${ikan.lokasi}\n` +
-               `📏 Berat: ${ikan.berat_min}-${ikan.berat_max}kg\n\n`;
+    fishData.forEach(fish => {
+        const icon = fish.rarity === 'common' ? '⭐' : fish.rarity === 'rare' ? '🌟' : fish.rarity === 'legendary' ? '💫' : '✨';
+        list += `${icon} *${fish.nama}*\n`;
+        list += `   💰 Rp${fish.harga.toLocaleString()} | 📍 ${fish.lokasi}\n`;
+        list += `   ⚖️ ${fish.berat_min}-${fish.berat_max}kg\n\n`;
     });
     
     m.reply(list.trim());
 }
 break;
 
-case 'inventory': case 'tasikan': {
+case 'inventory': case 'inv': {
     const inventory = loadJSON('./database/inventory.json');
     const userId = m.sender;
     
     if (!inventory[userId] || inventory[userId].length === 0) {
-        return m.reply("📭 Inventory kamu kosong! Ayo mancing dulu (.mancing)");
+        return m.reply("📭 *Your inventory is empty!*\nGo fishing first (.fishing)");
     }
     
-    let list = "*🎒 INVENTORY IKAN 🎒*\n\n";
+    let list = "🎒 *FISH INVENTORY* 🎒\n━━━━━━━━━━━━━━━━━━\n\n";
     let totalValue = 0;
+    let totalFish = inventory[userId].length;
     
-    inventory[userId].forEach((ikan, index) => {
-        list += `${index + 1}. *${ikan.nama}*\n` +
-               `   Berat: ${ikan.berat}kg | Harga: Rp${ikan.harga.toLocaleString()}\n`;
-        totalValue += ikan.harga;
+    // Count by fish type
+    const fishCount = {};
+    inventory[userId].forEach(fish => {
+        fishCount[fish.nama] = (fishCount[fish.nama] || 0) + 1;
+        totalValue += fish.harga;
     });
     
-    list += `\n💰 *Total Value:* Rp${totalValue.toLocaleString()}`;
+    Object.entries(fishCount).forEach(([name, count], index) => {
+        list += `${index + 1}. *${name}* (${count}x)\n`;
+    });
+    
+    list += `\n📊 Total: ${totalFish} fish\n💰 Total Value: *Rp${totalValue.toLocaleString()}*`;
     m.reply(list);
 }
 break;
 
-case 'sellfish': case 'jualikan': {
+case 'sellall': case 'sellfish': {
     const inventory = loadJSON('./database/inventory.json');
     const userId = m.sender;
     
     if (!inventory[userId] || inventory[userId].length === 0) {
-        return m.reply("❌ Tidak ada ikan untuk dijual!");
+        return m.reply("❌ *No fish to sell!*");
     }
     
     let totalEarned = 0;
     let itemsSold = inventory[userId].length;
     
-    inventory[userId].forEach(ikan => {
-        totalEarned += ikan.harga;
+    inventory[userId].forEach(fish => {
+        totalEarned += fish.harga;
     });
     
-    // Update user money (asumsi ada database money)
+    // Update user money
     const users = loadJSON('./database/users.json');
     if (!users[userId]) users[userId] = { money: 0, fishCaught: 0 };
-    users[userId].money += totalEarned;
-    users[userId].fishCaught += itemsSold;
+    users[userId].money = (users[userId].money || 0) + totalEarned;
     
     // Clear inventory
     inventory[userId] = [];
@@ -338,34 +346,34 @@ case 'sellfish': case 'jualikan': {
     saveJSON('./database/inventory.json', inventory);
     saveJSON('./database/users.json', users);
     
-    m.reply(`✅ Berhasil menjual ${itemsSold} ikan!\n💰 Mendapat: Rp${totalEarned.toLocaleString()}\n💵 Uang sekarang: Rp${users[userId].money.toLocaleString()}`);
+    m.reply(`✅ *Successfully sold ${itemsSold} fish!*\n💰 Earned: *Rp${totalEarned.toLocaleString()}*\n💵 Current money: *Rp${users[userId].money.toLocaleString()}*`);
 }
 break;
 
-case 'jual': {
+case 'sell': {
     const args = m.text.split(' ');
-    if (args.length < 3) return m.reply("❌ Format: .jual <nama_ikan> <jumlah>");
+    if (args.length < 3) return m.reply("❌ *Format:* .sell <fish_name> <amount>\n*Example:* .sell ikan mas 2");
     
-    const ikanName = args[1].toLowerCase();
-    const jumlah = parseInt(args[2]);
+    const fishName = args[1].toLowerCase();
+    const amount = parseInt(args[2]);
     const inventory = loadJSON('./database/inventory.json');
     const userId = m.sender;
     
-    if (!inventory[userId]) return m.reply("❌ Inventory kosong!");
+    if (!inventory[userId]) return m.reply("❌ *Inventory empty!*");
     
-    const filteredIkan = inventory[userId].filter(ikan => 
-        ikan.nama.toLowerCase().includes(ikanName)
+    const filteredFish = inventory[userId].filter(fish => 
+        fish.nama.toLowerCase().includes(fishName)
     );
     
-    if (filteredIkan.length === 0) return m.reply("❌ Ikan tidak ditemukan!");
+    if (filteredFish.length === 0) return m.reply("❌ *Fish not found!*");
     
-    const toSell = filteredIkan.slice(0, jumlah);
-    const totalEarned = toSell.reduce((sum, ikan) => sum + ikan.harga, 0);
+    const toSell = filteredFish.slice(0, amount);
+    const totalEarned = toSell.reduce((sum, fish) => sum + fish.harga, 0);
     
     // Remove from inventory
-    toSell.forEach(ikanToRemove => {
-        const index = inventory[userId].findIndex(ikan => 
-            ikan.nama === ikanToRemove.nama && ikan.berat === ikanToRemove.berat
+    toSell.forEach(fishToRemove => {
+        const index = inventory[userId].findIndex(fish => 
+            fish.nama === fishToRemove.nama && fish.weight === fishToRemove.weight
         );
         if (index > -1) inventory[userId].splice(index, 1);
     });
@@ -373,41 +381,42 @@ case 'jual': {
     // Update user money
     const users = loadJSON('./database/users.json');
     if (!users[userId]) users[userId] = { money: 0 };
-    users[userId].money += totalEarned;
+    users[userId].money = (users[userId].money || 0) + totalEarned;
     
     saveJSON('./database/inventory.json', inventory);
     saveJSON('./database/users.json', users);
     
-    m.reply(`✅ Berhasil menjual ${toSell.length} ${ikanName}!\n💰 Mendapat: Rp${totalEarned.toLocaleString()}`);
+    m.reply(`✅ *Successfully sold ${toSell.length} ${fishName}!*\n💰 Earned: *Rp${totalEarned.toLocaleString()}*`);
 }
 break;
 
-case 'fishinfo': {
+case 'fishinfo': case 'info': {
     const args = m.text.split(' ');
-    if (args.length < 2) return m.reply("❌ Format: .fishinfo <nama_ikan>");
+    if (args.length < 2) return m.reply("❌ *Format:* .fishinfo <fish_name>\n*Example:* .fishinfo ikan mas");
     
-    const ikanName = args.slice(1).join(' ').toLowerCase();
-    const ikanData = loadJSON('./database/ikan.json');
+    const fishName = args.slice(1).join(' ').toLowerCase();
+    const fishData = loadJSON('./database/ikan.json');
     
-    const ikan = ikanData.find(i => 
-        i.nama.toLowerCase().includes(ikanName)
+    const fish = fishData.find(i => 
+        i.nama.toLowerCase().includes(fishName)
     );
     
-    if (!ikan) return m.reply("❌ Ikan tidak ditemukan!");
+    if (!fish) return m.reply("❌ *Fish not found!*");
     
-    const info = `*🐟 INFO ${ikan.nama.toUpperCase()} 🐟*\n\n` +
-                `📛 Nama: ${ikan.nama}\n` +
-                `💰 Harga: Rp${ikan.harga.toLocaleString()}\n` +
-                `⭐ Rarity: ${ikan.rarity}\n` +
-                `📍 Lokasi: ${ikan.lokasi}\n` +
-                `⚖️ Berat: ${ikan.berat_min}-${ikan.berat_max}kg\n` +
-                `📝 Deskripsi: ${ikan.deskripsi}`;
+    const icon = fish.rarity === 'common' ? '⭐' : fish.rarity === 'rare' ? '🌟' : fish.rarity === 'legendary' ? '💫' : '✨';
+    const info = `🐟 *${fish.nama.toUpperCase()} INFO* 🐟\n━━━━━━━━━━━━━━━━━━\n\n` +
+                `${icon} *${fish.nama}*\n` +
+                `💰 Price: Rp${fish.harga.toLocaleString()}\n` +
+                `⭐ Rarity: ${fish.rarity}\n` +
+                `📍 Location: ${fish.lokasi}\n` +
+                `⚖️ Weight: ${fish.berat_min}-${fish.berat_max}kg\n` +
+                `📝 ${fish.deskripsi}`;
     
     m.reply(info);
 }
 break;
 
-case 'fishtop': {
+case 'fishtop': case 'top': {
     const users = loadJSON('./database/users.json');
     const inventory = loadJSON('./database/inventory.json');
     
@@ -415,27 +424,55 @@ case 'fishtop': {
     
     Object.entries(users).forEach(([userId, userData]) => {
         const userFish = inventory[userId] || [];
-        const totalValue = userFish.reduce((sum, ikan) => sum + ikan.harga, 0);
+        const totalValue = userFish.reduce((sum, fish) => sum + fish.harga, 0);
         
         leaderboard.push({
             userId,
             totalValue,
-            fishCaught: userData.fishCaught || 0
+            fishCaught: userData.fishCaught || 0,
+            money: userData.money || 0
         });
     });
     
     leaderboard.sort((a, b) => b.totalValue - a.totalValue);
     
-    let topList = "*🏆 LEADERBOARD MANCING 🏆*\n\n";
+    let topList = "🏆 *FISHING LEADERBOARD* 🏆\n━━━━━━━━━━━━━━━━━━\n\n";
     
     leaderboard.slice(0, 10).forEach((user, index) => {
-        const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`;
-        topList += `${rank} @${user.userId.split('@')[0]}\n` +
-                  `   💰 Total: Rp${user.totalValue.toLocaleString()}\n` +
-                  `   🎣 Tangkapan: ${user.fishCaught} ikan\n\n`;
+        const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `▫️`;
+        const name = user.userId.split('@')[0];
+        topList += `${rank} *${name}*\n`;
+        topList += `   💰 Rp${user.totalValue.toLocaleString()} | 🎣 ${user.fishCaught} fish\n\n`;
     });
     
     m.reply(topList.trim());
+}
+break;
+
+case 'fishstats': case 'stats': {
+    const users = loadJSON('./database/users.json');
+    const inventory = loadJSON('./database/inventory.json');
+    const userId = m.sender;
+    
+    const userData = users[userId] || { money: 0, fishCaught: 0, level: 1, exp: 0 };
+    const userFish = inventory[userId] || [];
+    
+    const totalValue = userFish.reduce((sum, fish) => sum + fish.harga, 0);
+    const rareFish = userFish.filter(fish => fish.rarity !== 'common').length;
+    const commonFish = userFish.filter(fish => fish.rarity === 'common').length;
+    
+    const stats = `📊 *FISHING STATISTICS* 📊\n━━━━━━━━━━━━━━━━━━\n\n` +
+                 `👤 *${pushName}*\n\n` +
+                 `💵 Money: Rp${userData.money.toLocaleString()}\n` +
+                 `🎣 Total Caught: ${userData.fishCaught} fish\n` +
+                 `📦 Inventory: ${userFish.length} fish\n` +
+                 `💰 Inventory Value: Rp${totalValue.toLocaleString()}\n` +
+                 `⭐ Rare Fish: ${rareFish} fish\n` +
+                 `📈 Common Fish: ${commonFish} fish\n` +
+                 `🎯 Level: ${userData.level}\n` +
+                 `⚡ EXP: ${userData.exp}/100`;
+    
+    m.reply(stats);
 }
 break;
       
@@ -444,26 +481,26 @@ break;
       }
       break;
 
-      case 'tes': {
+      case 'test': {
   if (!args || args.length === 0) {
-    return m.reply(`silahkan isi ini\nnama:\nhobi:`);
+    return m.reply(`please fill this\nname:\nhobby:`);
   }
 
   const text = args.join(' ') || (m.quoted && m.quoted.text) || m.text || '';
-  const namaMatch = text.match(/nama\s*:\s*([^\n\r]+)/i);
-  const hobiMatch = text.match(/hobi\s*:\s*([^\n\r]+)/i);
-  const nama = namaMatch ? namaMatch[1].trim() : null;
-  const hobi = hobiMatch ? hobiMatch[1].trim() : null;
+  const nameMatch = text.match(/name\s*:\s*([^\n\r]+)/i);
+  const hobbyMatch = text.match(/hobby\s*:\s*([^\n\r]+)/i);
+  const name = nameMatch ? nameMatch[1].trim() : null;
+  const hobby = hobbyMatch ? hobbyMatch[1].trim() : null;
 
-  if (!nama || !hobi) {
-    return m.reply(`Format belum lengkap. Contoh:\nnama: Dravin\nhobi: Nge-bot`);
+  if (!name || !hobby) {
+    return m.reply(`Format incomplete. Example:\nname: Dravin\nhobby: Botting`);
   }
 
   const tests = loadTests();
-  tests[m.sender] = { jid: m.sender, nama, hobi, time: new Date().toISOString() };
+  tests[m.sender] = { jid: m.sender, name, hobby, time: new Date().toISOString() };
   saveTests(tests);
 
-  await m.reply(`thank you for testing\n\nnama: ${nama}\nhobi: ${hobi}`);
+  await m.reply(`thank you for testing\n\nname: ${name}\nhobby: ${hobby}`);
 }
 break;
       
@@ -479,15 +516,14 @@ break;
                 break
             }
       
-      case 'hidetag': {
-        if (!isGroup) return;
+      case 'hidetag': case 'tagall': {
+        if (!isGroup) return m.reply("❌ *This command is for groups only!*");
         let teks = quoted.text ? quoted.text : q ? q : '';
         let mem = [];
         groupMembers.map(i => mem.push(i.id));
         conn.sendMessage(m.chat, { text: teks, mentions: mem }, { quoted: m });
       }
       break;
-
 
       case 'runtime': case 'rt': case 'ping': {
 const startTime = Date.now();
@@ -499,7 +535,7 @@ let hours = Math.floor(seconds / 3600);
 seconds %= 3600;
 let minutes = Math.floor(seconds / 60);
 seconds %= 60;
-return `${days} hari, ${hours} jam, ${minutes} menit, ${seconds} detik`;
+return `${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`;
 }
 let timestamp = speed();
 let latensi = speed() - timestamp;
@@ -516,21 +552,23 @@ timeZone: "Asia/Jakarta",
 hour12: false
 });
 let teks = `
-*— Informasi Bot 🤖*
-- *Nama Bot :* ${global.botName || "undefined"}
-- *Runtime Bot :* ${runtime(process.uptime())}
+🤖 *BOT INFORMATION* 🤖
+━━━━━━━━━━━━━━━━━━
+- *Bot Name :* ${global.botName || "undefined"}
+- *Bot Runtime :* ${runtime(process.uptime())}
 - *Response Speed :* ${latensi.toFixed(4)} _Second_ 
 - *NodeJS Version :* ${process.version}
 
-*— Informasi Server VPS 🖥️*
+🖥️ *SERVER VPS INFORMATION* 🖥️
+━━━━━━━━━━━━━━━━━━
 - *OS Platform :* ${os.type()} (${os.arch()})
 - *Total RAM :* ${(totalMem / 1024 / 1024 / 1024).toFixed(2)} GB
-- *Terpakai :* ${(usedMem / 1024 / 1024 / 1024).toFixed(2)} GB (${memUsage.toFixed(2)}%)
-- *Tersisa :* ${(freeMem / 1024 / 1024 / 1024).toFixed(2)} GB
+- *Used :* ${(usedMem / 1024 / 1024 / 1024).toFixed(2)} GB (${memUsage.toFixed(2)}%)
+- *Free :* ${(freeMem / 1024 / 1024 / 1024).toFixed(2)} GB
 - *Total Disk :* 199.9 GB
 - *CPU Core :* ${os.cpus().length} Core
 - *Load Avg :* ${(os.loadavg()[0] * 100 / os.cpus().length).toFixed(2)}%
-- *Uptime VPS :* ${uptimeServer}
+- *VPS Uptime :* ${uptimeServer}
 - *Server Time :* ${serverTime}
 `;
 m.reply(teks.trim());
@@ -538,7 +576,7 @@ m.reply(teks.trim());
 break
 
             case "get":{
-                if (!/^https?:\/\//.test(q)) return reply(`*ex:* ${prefix + command} https://kyuurzy.site`);
+                if (!/^https?:\/\//.test(q)) return reply(`*example:* ${prefix + command} https://example.com`);
                 const ajg = await fetch(q);
                 await reaction(m.chat, "⚡")
                 
@@ -548,23 +586,23 @@ break
 
                 const contentType = ajg.headers.get("content-type");
                 if (contentType.startsWith("image/")) {
-                    return client.sendMessage(m.chat, {
+                    return conn.sendMessage(m.chat, {
                         image: { url: q }
-                    }, { quoted: fquoted.packSticker });
+                    }, { quoted: m });
                 }
         
                 if (contentType.startsWith("video/")) {
-                    return client.sendMessage(m.chat, {
+                    return conn.sendMessage(m.chat, {
                         video: { url: q } 
-                    }, { quoted: fquoted.packSticker });
+                    }, { quoted: m });
                 }
                 
                 if (contentType.startsWith("audio/")) {
-                    return client.sendMessage(m.chat, {
+                    return conn.sendMessage(m.chat, {
                         audio: { url: q },
                         mimetype: 'audio/mpeg', 
                         ptt: true
-                    }, { quoted: fquoted.packSticker });
+                    }, { quoted: m });
                 }
         
                 let alak = await ajg.buffer();
@@ -579,16 +617,16 @@ break
             break
 
       default:
+        // No reply for unknown commands
     }
   } catch (err) {
-    m.reply(util.format(err));
+    m.reply(`❌ *Error occurred:*\n${util.format(err)}`);
   }
 };
-
 
 let file = fileURLToPath(import.meta.url);
 fs.watchFile(file, () => {
     fs.unwatchFile(file);
-    console.log(` ~> File updated: ${file}`);
-    import(`${file}`);
+    console.log(chalk.red(` ~> File updated: ${file}`));
+    import(`${file}?update=${Date.now()}`);
 });
