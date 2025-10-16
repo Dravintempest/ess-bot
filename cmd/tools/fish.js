@@ -1,10 +1,8 @@
 import "../../settings/config.js";
+import fs from "fs-extra";
 
 let handler = async (m, { conn, runtime, pushName, prefix }) => {
     const user = global.db.users[m.sender];
-    
-    // Load data fishing
-    const fs = require('fs');
     
     function loadJSON(file) {
         try {
