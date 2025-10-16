@@ -23,6 +23,7 @@ import pino from "pino";
 import readline from "readline";
 import chalk from "chalk";
 import fs from "fs-extra";
+import figlet from 'figlet';
 import gradient from 'gradient-string';
 import NodeCache from "node-cache";
 import fileType from 'file-type';
@@ -648,6 +649,7 @@ fs.watchFile(file, () => {
     console.log(` ~> File updated: ${file}`);
     import(`${file}`);
 });
+
 
 
 
