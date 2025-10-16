@@ -44,9 +44,9 @@ const pairingCode = process.argv.includes("pair");
 
 console.log();
 console.log(
-  chalk.bold.hex('#FFA500')('Dra') + chalk.bold.cyan('vin')
+  chalk.bold.hex('#FF0000')('Dra') + chalk.bold.orange('vin')
 );
-console.log(gradient(['magenta', 'cyan'])('> you can check the api for the wa bot dravin.web.id <'));
+console.log(gradient(['red', 'yellow'])('> you can check the api for the wa bot dravin.web.id <'));
 console.log();
 
 if (!pairingCode) {
@@ -635,5 +635,6 @@ fs.watchFile(file, () => {
     console.log(` ~> File updated: ${file}`);
     import(`${file}`);
 });
+
 
 
