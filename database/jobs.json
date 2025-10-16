@@ -1,0 +1,26 @@
+{
+    "ojek": {
+        "name": "🏍️ Ojek Online",
+        "income": { "min": 5000, "max": 15000 },
+        "energyCost": 10,
+        "time": 3000
+    },
+    "nasgor": {
+        "name": "🍳 Jualan Nasi Goreng",
+        "income": { "min": 8000, "max": 20000 },
+        "energyCost": 15,
+        "time": 4000
+    },
+    "programmer": {
+        "name": "💻 Programmer",
+        "income": { "min": 15000, "max": 30000 },
+        "energyCost": 20,
+        "time": 5000
+    },
+    "dokter": {
+        "name": "👨‍⚕️ Dokter",
+        "income": { "min": 25000, "max": 50000 },
+        "energyCost": 25,
+        "time": 6000
+    }
+}
