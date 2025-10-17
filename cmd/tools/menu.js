@@ -38,6 +38,16 @@ command:
             title: `🎯 Hunt Menu`,
             description: "Sistem berburu hewan",
             id: `${prefix}huntmenu`
+        },
+        {
+            title: `⚔️ RPG Menu`,
+            description: "Sistem petualangan RPG",
+            id: `${prefix}rpgmenu`
+        },
+        {
+            title: `💰 Economy Menu`,
+            description: "Sistem ekonomi & bisnis",
+            id: `${prefix}economymenu`
         }
     ];
     await conn.sendButton(m.chat, text, footer, btnklick, image1, image2, buttonData, m);
