@@ -42,7 +42,7 @@ let handler = async (m, { conn, user }) => {
                                             },
                                             {
                                                 name: 'cta_copy',
-                                                buttonParamsJson: `{"display_text": "✩ 🚀 Copy User","copy_code": "${user.username}"}`,
+                                                buttonParamsJson: `{"display_text": "✩ 🚀 Copy User","copy_code": "${m.sender}"}`,
                                             },
                                         ],
                                     },
