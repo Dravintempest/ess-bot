@@ -1,35 +1,40 @@
+import axios from "axios";
 import baileys from "@whiskeysockets/baileys";
-const { generateWAMessageFromContent, prepareWAMessageMedia } = baileys;
-import fetch from "node-fetch";
+const { generateWAMessageFromContent, prepareWAMessageMedia, proto } = baileys;
 
 const handler = async (m, { conn }) => {
   try {
-    // ambil data dari API Rijalganzz
-    const response = await fetch("https://rijalganzz.web.id/search/bloxfruit");
-    const data = await response.json();
+    // ambil data dari API Rijalganzz pakai axios
+    const { data } = await axios.get("https://rijalganzz.web.id/search/bloxfruit", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (DravinBot)",
+        "Accept": "application/json"
+      }
+    });
+
     if (!data.status) return m.reply("❌ Gagal ambil data dari API.");
 
     // ambil list buah
-    const fruits = data.data.slice(0, 8); // ambil maksimal 8 biar carousel gak meledak
+    const fruits = data.data.slice(0, 8);
     const cards = [];
 
     for (const fruit of fruits) {
       const img = fruit.thumb || "https://files.catbox.moe/jlkib4.png";
 
       // generate satu kartu per buah
+      const media = await prepareWAMessageMedia(
+        { image: { url: img } },
+        { upload: conn.waUploadToServer }
+      );
+
       cards.push({
-        header: baileys.proto.Message.InteractiveMessage.Header.create({
-          ...(await prepareWAMessageMedia(
-            { image: { url: img } },
-            { upload: conn.waUploadToServer }
-          )),
+        header: proto.Message.InteractiveMessage.Header.create({
+          ...media,
           title: fruit.name,
           subtitle: fruit.type,
           hasMediaAttachment: true,
         }),
-        body: {
-          text: `💸 Harga Dollar: *${fruit.priceDolar}*\n💰 Harga R$: *${fruit.priceR}*`,
-        },
+        body: { text: `💸 Harga Dollar: *${fruit.priceDolar}*\n💰 Harga R$: *${fruit.priceR}*` },
         nativeFlowMessage: {
           buttons: [
             {
@@ -60,10 +65,7 @@ const handler = async (m, { conn }) => {
           message: {
             interactiveMessage: {
               body: { text: "🍇 *BloxFruit Stock Hari Ini*" },
-              carouselMessage: {
-                cards,
-                messageVersion: 1,
-              },
+              carouselMessage: { cards, messageVersion: 1 },
             },
           },
         },
@@ -74,7 +76,7 @@ const handler = async (m, { conn }) => {
     await conn.relayMessage(m.chat, msg.message, { messageId: msg.key.id });
   } catch (err) {
     console.error(err);
-    m.reply(`❌ Error:\n${err.message}`);
+    m.reply(`❌ Error: ${err.message}`);
   }
 };
 
