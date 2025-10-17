@@ -42,7 +42,7 @@ import {
   makeid,
 } from "../source/myfunc.js";
 import { qtext } from '../source/quoted.js';
-import { runPlugins } from '../handler.js';
+import { plug } from '../handler.js';
 import { leveluser } from '../source/events/_levelup.js';
 
 let prefix = ".";
