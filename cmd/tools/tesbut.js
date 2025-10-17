@@ -1,12 +1,19 @@
+import axios from "axios";
+
 let handler = async (m, { conn }) => {
   try {
+    // ambil gambar dari URL & ubah jadi buffer
+    const thumb = await axios
+      .get("https://github.com/kiuur.png", { responseType: "arraybuffer" })
+      .then((res) => res.data);
+
     await conn.sendMessage(
       m.chat,
       {
         interactiveMessage: {
           title: "wkwk",
           footer: "KyuuTheGreat",
-          thumbnail: "https://github.com/kiuur.png",
+          thumbnail: thumb, // udah buffer sekarang
           nativeFlowMessage: {
             messageParamsJson: JSON.stringify({
               limited_time_offer: {
