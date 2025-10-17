@@ -23,8 +23,13 @@ let handler = async (m, { conn, runtime, pushName, prefix }) => {
         equipment: "pancing_biasa"
     };
     
-    const userInventory = inventory[m.sender] || [];
-    const totalFishValue = userInventory.reduce((sum, ikan) => sum + ikan.harga, 0);
+    // Fix: Ensure userInventory is always an array
+    let userInventory = inventory[m.sender];
+    if (!userInventory || !Array.isArray(userInventory)) {
+        userInventory = [];
+    }
+    
+    const totalFishValue = userInventory.reduce((sum, ikan) => sum + (ikan.harga || 0), 0);
     
     // Progress bar untuk EXP
     function createProgressBar(exp, maxExp = 100) {
@@ -34,9 +39,9 @@ let handler = async (m, { conn, runtime, pushName, prefix }) => {
         return '█'.repeat(filled) + '░'.repeat(empty) + ` ${percentage.toFixed(1)}%`;
     }
     
-    // Hitung rare fish
-    const rareFish = userInventory.filter(ikan => ikan.rarity === 'rare').length;
-    const legendaryFish = userInventory.filter(ikan => ikan.rarity === 'legendary').length;
+    // Hitung rare fish dengan safety check
+    const rareFish = userInventory.filter(ikan => ikan && ikan.rarity === 'rare').length;
+    const legendaryFish = userInventory.filter(ikan => ikan && ikan.rarity === 'legendary').length;
     
     const text = `*🎣 FISHING MASTER MENU 🎣*
 *Halo ${pushName}!*
