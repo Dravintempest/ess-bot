@@ -1,18 +1,10 @@
-import axios from "axios";
-
 let handler = async (m, { conn }) => {
   try {
-    // ambil gambar dari URL
-    const image = await axios.get("https://github.com/kiuur.png", {
-      responseType: "arraybuffer"
-    });
-    const jpegThumbnail = Buffer.from(image.data, "binary");
-
-    const msg = {
+    await conn.sendMessage(m.chat, {
       interactiveMessage: {
         title: "wkwk",
         footer: "KyuuTheGreat",
-        jpegThumbnail, // buffer gambar
+        thumbnail: "https://github.com/kiuur.png",
         nativeFlowMessage: {
           messageParamsJson: JSON.stringify({
             limited_time_offer: {
@@ -79,12 +71,10 @@ let handler = async (m, { conn }) => {
           ]
         }
       }
-    };
-
-    await conn.sendMessage(m.chat, msg, { quoted: m });
+    }, { quoted: m });
   } catch (err) {
     console.error(err);
-    m.reply("❌ Gagal kirim interactive message (mungkin format thumbnail).");
+    m.reply("❌ Gagal kirim interactive message");
   }
 };
 
