@@ -42,7 +42,7 @@ import {
   makeid,
 } from "../source/myfunc.js";
 import { qtext } from '../source/quoted.js';
-import { plug } from '../handler.js';
+import { runPlugins } from '../handler.js';
 import { leveluser } from '../source/events/_levelup.js';
 
 let prefix = ".";
@@ -313,6 +313,12 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
         );
     };
    
+    const plug = { conn, command, quoted, fetchJson, qtext, budy, commands, args, q, message, messageType, messageKey, pushName, itsMe, chat, sender, userId, reply, botNumber, isGroup, groupMetadata, groupName, groupId, groupMembers, groupAdmins, isBotGroupAdmins, isGroupAdmins, generateProfilePicture, getBuffer, fetchJson,fetchText, getRandom, runtime, sleep, makeid, prefix, reaction };
+
+    const pluginHandled = await runPlugins(m, plug);
+    if (pluginHandled) {
+        return;
+    }
 
     switch (commands) {
 
