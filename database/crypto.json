@@ -1,17 +1,117 @@
 {
   "DRVN": {
     "name": "DravinCoin",
-    "price": 1530,
+    "price": 127000,
     "trend": "naik"
   },
   "ESS": {
-    "name": "EssCoin", 
+    "name": "EssCoin",
     "price": 23000,
     "trend": "turun"
   },
   "PIX": {
     "name": "PixelToken",
     "price": 580,
+    "trend": "naik"
+  },
+  "BLD": {
+    "name": "BladeCoin",
+    "price": 6700,
+    "trend": "naik"
+  },
+  "VLT": {
+    "name": "VoltCash",
+    "price": 920,
+    "trend": "turun"
+  },
+  "RZN": {
+    "name": "Rizen",
+    "price": 3120,
+    "trend": "naik"
+  },
+  "ARK": {
+    "name": "Arkium",
+    "price": 54000,
+    "trend": "turun"
+  },
+  "HEX": {
+    "name": "HexaCoin",
+    "price": 15800,
+    "trend": "naik"
+  },
+  "GRV": {
+    "name": "Gravium",
+    "price": 10200,
+    "trend": "turun"
+  },
+  "ZEN": {
+    "name": "Zenith",
+    "price": 18800,
+    "trend": "naik"
+  },
+  "KTX": {
+    "name": "Kortex",
+    "price": 380,
+    "trend": "naik"
+  },
+  "FYN": {
+    "name": "Fynix",
+    "price": 7800,
+    "trend": "turun"
+  },
+  "CRY": {
+    "name": "Cryon",
+    "price": 890,
+    "trend": "naik"
+  },
+  "OBL": {
+    "name": "Oblivion",
+    "price": 25000,
+    "trend": "naik"
+  },
+  "LUM": {
+    "name": "Lumina",
+    "price": 6200,
+    "trend": "turun"
+  },
+  "TRX": {
+    "name": "Trixel",
+    "price": 3100,
+    "trend": "naik"
+  },
+  "NYX": {
+    "name": "NyxToken",
+    "price": 9900,
+    "trend": "turun"
+  },
+  "ZRD": {
+    "name": "Zerod",
+    "price": 1600,
+    "trend": "naik"
+  },
+  "PLR": {
+    "name": "Pillar",
+    "price": 44000,
+    "trend": "naik"
+  },
+  "BLX": {
+    "name": "Bloxium",
+    "price": 2600,
+    "trend": "turun"
+  },
+  "HZN": {
+    "name": "Horizon",
+    "price": 15800,
+    "trend": "naik"
+  },
+  "SRG": {
+    "name": "SurgeCoin",
+    "price": 720,
+    "trend": "turun"
+  },
+  "DRK": {
+    "name": "Darkium",
+    "price": 33300,
     "trend": "naik"
   }
 }
