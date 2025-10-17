@@ -9,6 +9,8 @@ global.packname = 'www.essentialsr.web.id.';
 global.nameown = "EssentialsR | Teams";
 global.author = 'https://www.github.com/DravinTempest';
 global.footer = "𝗍𝖾𝗅𝖾𝗀𝗋𝖺𝗆: @dr4vin";
+global.chdev = "https://whatsapp.com/channel/0029VbB8T5PADTO6tbSRqd2L"
+global.domain = "https://dravin.web.id"
 
 global.YouTube = "https://www.youtube.com/@essuniversalofc";
 global.GitHub = "https://github.com/DravinTempest";
