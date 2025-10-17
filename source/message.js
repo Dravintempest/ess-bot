@@ -28,7 +28,7 @@ import syntaxerror from "syntax-error";
 import { fileURLToPath } from 'url';
 import path from "path"
 import os from "os";
-import jimp from "jimp";
+import * as Jimp from "jimp";
 import speed from 'performance-now';
 import {
   generateProfilePicture,
