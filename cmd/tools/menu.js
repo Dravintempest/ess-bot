@@ -23,6 +23,21 @@ command:
             title: `${global.nameown}`,
             description: `${global.namebotz} Information`,
             id: '.rt'
+        },
+        {
+            title: `🎣 Fishing Menu`,
+            description: "Sistem memancing lengkap",
+            id: `${prefix}fishmenu`
+        },
+        {
+            title: `💼 Work Menu`,
+            description: "Sistem pekerjaan & karir",
+            id: `${prefix}workmenu`
+        },
+        {
+            title: `🎯 Hunt Menu`,
+            description: "Sistem berburu hewan",
+            id: `${prefix}huntmenu`
         }
     ];
     await conn.sendButton(m.chat, text, footer, btnklick, image1, image2, buttonData, m);
