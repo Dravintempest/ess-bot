@@ -1,0 +1,17 @@
+{
+  "ESSCorp": {
+    "name": "ESS Corporation",
+    "price": 15000,
+    "dividend": 500
+  },
+  "PixelBank": {
+    "name": "Pixel Bank",
+    "price": 28000,
+    "dividend": 800
+  },
+  "DravinSteel": {
+    "name": "Dravin Steel",
+    "price": 12000,
+    "dividend": 300
+  }
+}

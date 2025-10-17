@@ -1,0 +1,22 @@
+{
+  "hutan": {
+    "name": "🌲 Hutan Desa",
+    "level": 1,
+    "energyCost": 15
+  },
+  "tambang": {
+    "name": "⛏️ Tambang Dalam", 
+    "level": 3,
+    "energyCost": 25
+  },
+  "kota_tua": {
+    "name": "🏰 Kota Tua",
+    "level": 5,
+    "energyCost": 30
+  },
+  "gunung": {
+    "name": "🌋 Gunung Vulkanik",
+    "level": 8,
+    "energyCost": 40
+  }
+}

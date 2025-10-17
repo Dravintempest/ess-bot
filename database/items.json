@@ -1,0 +1,26 @@
+{
+  "pedang_baja": {
+    "name": "⚔️ Pedang Baja",
+    "type": "weapon",
+    "attack": 15,
+    "price": 5000
+  },
+  "armor_kulit": {
+    "name": "🛡️ Armor Kulit", 
+    "type": "armor",
+    "defense": 10,
+    "price": 3000
+  },
+  "potion_hp": {
+    "name": "❤️ Potion HP",
+    "type": "potion",
+    "heal": 30,
+    "price": 1000
+  },
+  "energy_drink": {
+    "name": "⚡ Energy Drink",
+    "type": "energy",
+    "restore": 50,
+    "price": 2000
+  }
+}

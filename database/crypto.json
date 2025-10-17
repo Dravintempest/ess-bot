@@ -1,0 +1,17 @@
+{
+  "DRVN": {
+    "name": "DravinCoin",
+    "price": 1530,
+    "trend": "naik"
+  },
+  "ESS": {
+    "name": "EssCoin", 
+    "price": 23000,
+    "trend": "turun"
+  },
+  "PIX": {
+    "name": "PixelToken",
+    "price": 580,
+    "trend": "naik"
+  }
+}
