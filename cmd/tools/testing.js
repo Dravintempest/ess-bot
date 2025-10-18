@@ -4,7 +4,7 @@ const handler = async (m, { conn }) => {
     {
       productMessage: {
         title: "tes",
-        description: "penis",
+        description: "testinggg",
         thumbnail: "https://files.catbox.moe/jlkib4.png",
         productId: "123456789",
         retailerId: "TOKOKU",
