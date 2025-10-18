@@ -9,7 +9,7 @@ const handler = async (m, { conn }) => {
         productId: "123456789",
         retailerId: "TOKOKU",
         url: "https://files.catbox.moe/jlkib4.png",
-        body: "penis",
+        body: "testtt",
         footer: "wabot",
         buttons: [
           {
