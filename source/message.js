@@ -28,7 +28,7 @@ import syntaxerror from "syntax-error";
 import { fileURLToPath } from 'url';
 import path from "path"
 import os from "os";
-import * as Jimp from "jimp";
+import jimp from "jimp";
 import speed from 'performance-now';
 import {
   generateProfilePicture,
@@ -82,22 +82,36 @@ const stocks = loadJSON('./database/stocks.json');
 const businesses = loadJSON('./database/businesses.json');
 const locations = loadJSON('./database/locations.json');
 const items = loadJSON('./database/items.json');
+const rods = loadJSON('./database/rods.json');
 
 // Active sessions
 const activeFishing = new Map();
 const activeHunting = new Map();
 const activeExploration = new Map();
 
-function getRandomFish(spot, bait = 'cacing') {
+// Owner & Admin list
+const owner = ['628xxxxxx@s.whatsapp.net']; // Ganti dengan nomor owner
+const admins = ['628xxxxxx@s.whatsapp.net']; // Ganti dengan nomor admin
+
+function isOwner(sender) {
+    return owner.includes(sender);
+}
+
+function isAdmin(sender) {
+    return admins.includes(sender) || owner.includes(sender);
+}
+
+function getRandomFish(spot, bait = 'cacing', rod = 'basic_rod') {
     const fishData = loadJSON('./database/ikan.json');
     const spotData = fishingSpots[spot];
     const baitMultiplier = baitData[bait]?.effectiveness || 1.0;
+    const rodMultiplier = rods[rod]?.effectiveness || 1.0;
     
     let rarityWeights = {
-        'common': spotData.commonFish,
-        'rare': spotData.rareFish * baitMultiplier,
-        'legendary': spotData.legendaryFish * baitMultiplier,
-        'mythic': (spotData.mythicFish || 0) * baitMultiplier
+        'common': spotData.commonFish * rodMultiplier,
+        'rare': spotData.rareFish * baitMultiplier * rodMultiplier,
+        'legendary': spotData.legendaryFish * baitMultiplier * rodMultiplier,
+        'mythic': (spotData.mythicFish || 0) * baitMultiplier * rodMultiplier
     };
     
     let totalWeight = 0;
@@ -116,7 +130,7 @@ function getRandomFish(spot, bait = 'cacing') {
             return {
                 ...fish,
                 weight: fishWeight,
-                value: Math.floor(fish.harga * (baitData[bait]?.rarityBonus || 1.0))
+                value: Math.floor(fish.harga * (baitData[bait]?.rarityBonus || 1.0) * rodMultiplier)
             };
         }
         random -= weight;
@@ -139,12 +153,10 @@ function createFishingAnimation(position, progress, fishPosition) {
     const filled = Math.floor((progress / 100) * barLength);
     const empty = barLength - filled;
     
-    // Buat bar dengan | di tengah
     let leftBar = '='.repeat(Math.max(0, filled - 1));
     let rightBar = '='.repeat(Math.max(0, empty - 1));
     let bar = leftBar + '|' + rightBar;
     
-    // Place fish in the bar
     let fishBar = bar.split('');
     if (fishPosition >= 0 && fishPosition < barLength) {
         fishBar[fishPosition] = '🐟';
@@ -162,7 +174,7 @@ function createFishingAnimation(position, progress, fishPosition) {
 function updateCryptoPrices() {
     const cryptos = loadJSON('./database/crypto.json');
     Object.keys(cryptos).forEach(code => {
-        const change = (Math.random() - 0.5) * 0.4; // ±20%
+        const change = (Math.random() - 0.5) * 0.4;
         cryptos[code].price = Math.max(1, Math.floor(cryptos[code].price * (1 + change)));
         cryptos[code].trend = change > 0 ? 'naik' : 'turun';
     });
@@ -219,7 +231,6 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
             session.hookPosition = Math.min(19, session.hookPosition + 1);
         }
         
-        // Update progress based on hook position
         if (session.hookPosition === session.fishPosition) {
             session.progress = Math.min(100, session.progress + 10);
         } else {
@@ -322,7 +333,7 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
 
     switch (commands) {
 
-      // ==================== FISHING SYSTEM ====================
+      // ==================== FISHING SYSTEM (10 FITUR) ====================
       case 'fishing': case 'fish': case 'mancing': {
     const userData = loadJSON('./database/users.json');
     const userId = m.sender;
@@ -356,6 +367,7 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
     
     const spot = userData[userId].currentSpot;
     const bait = inventory[userId].bait[0];
+    const rod = userData[userId].equipment || 'basic_rod';
     
     inventory[userId].bait.shift();
     saveJSON('./database/inventory.json', inventory);
@@ -363,6 +375,7 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
     const fishingSession = {
         spot: spot,
         bait: bait,
+        rod: rod,
         progress: 0,
         fishPosition: Math.floor(Math.random() * 20),
         hookPosition: 10,
@@ -402,7 +415,7 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
         if (session.progress >= 100) {
             activeFishing.delete(userId);
             
-            const caughtFish = getRandomFish(spot, bait);
+            const caughtFish = getRandomFish(spot, bait, rod);
             const users = loadJSON('./database/users.json');
             const userInventory = loadJSON('./database/inventory.json');
             
@@ -425,6 +438,7 @@ return `\n *Example Command :*\n *${prefix+command}* ${teks}\n`
                       `⚖️ Berat: ${caughtFish.weight}kg\n` +
                       `💰 Harga: Rp${caughtFish.value.toLocaleString()}\n` +
                       `⭐ Rarity: ${caughtFish.rarity}\n` +
+                      `🎣 Rod: ${rods[rod]?.name || rod}\n` +
                       `📍 ${caughtFish.deskripsi}\n\n` +
                       `⚡ Energy: ${users[userId].energy}/100`
             }, { quoted: m });
@@ -500,7 +514,163 @@ case 'gotospot': {
 }
 break;
 
-      // ==================== WORK SYSTEM ====================
+case 'fishlist': case 'listfish': {
+    const fishData = loadJSON('./database/ikan.json');
+    let list = "🐟 *ALL FISH LIST* 🐟\n━━━━━━━━━━━━━━━━━━\n\n";
+    
+    fishData.forEach(fish => {
+        const icon = fish.rarity === 'common' ? '⭐' : fish.rarity === 'rare' ? '🌟' : fish.rarity === 'legendary' ? '💫' : '✨';
+        list += `${icon} *${fish.nama}*\n`;
+        list += `   💰 Rp${fish.harga.toLocaleString()} | 📍 ${fish.lokasi}\n`;
+        list += `   ⚖️ ${fish.berat_min}-${fish.berat_max}kg\n\n`;
+    });
+    
+    m.reply(list.trim());
+}
+break;
+
+case 'fishinfo': case 'info': {
+    const fishName = args.slice(1).join(' ').toLowerCase();
+    const fishData = loadJSON('./database/ikan.json');
+    
+    const fish = fishData.find(i => 
+        i.nama.toLowerCase().includes(fishName)
+    );
+    
+    if (!fish) return m.reply("❌ *Fish not found!*");
+    
+    const icon = fish.rarity === 'common' ? '⭐' : fish.rarity === 'rare' ? '🌟' : fish.rarity === 'legendary' ? '💫' : '✨';
+    const info = `🐟 *${fish.nama.toUpperCase()} INFO* 🐟\n━━━━━━━━━━━━━━━━━━\n\n` +
+                `${icon} *${fish.nama}*\n` +
+                `💰 Price: Rp${fish.harga.toLocaleString()}\n` +
+                `⭐ Rarity: ${fish.rarity}\n` +
+                `📍 Location: ${fish.lokasi}\n` +
+                `⚖️ Weight: ${fish.berat_min}-${fish.berat_max}kg\n` +
+                `📝 ${fish.deskripsi}`;
+    
+    m.reply(info);
+}
+break;
+
+case 'fishtop': case 'top': {
+    const users = loadJSON('./database/users.json');
+    const inventory = loadJSON('./database/inventory.json');
+    
+    let leaderboard = [];
+    
+    Object.entries(users).forEach(([userId, userData]) => {
+        const userFish = inventory[userId]?.fish || [];
+        const totalValue = userFish.reduce((sum, fish) => sum + fish.harga, 0);
+        
+        leaderboard.push({
+            userId,
+            totalValue,
+            fishCaught: userData.fishCaught || 0,
+            money: userData.money || 0
+        });
+    });
+    
+    leaderboard.sort((a, b) => b.totalValue - a.totalValue);
+    
+    let topList = "🏆 *FISHING LEADERBOARD* 🏆\n━━━━━━━━━━━━━━━━━━\n\n";
+    
+    leaderboard.slice(0, 10).forEach((user, index) => {
+        const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `▫️`;
+        const name = user.userId.split('@')[0];
+        topList += `${rank} *${name}*\n`;
+        topList += `   💰 Rp${user.totalValue.toLocaleString()} | 🎣 ${user.fishCaught} fish\n\n`;
+    });
+    
+    m.reply(topList.trim());
+}
+break;
+
+case 'fishstats': case 'stats': {
+    const users = loadJSON('./database/users.json');
+    const inventory = loadJSON('./database/inventory.json');
+    const userId = m.sender;
+    
+    const userData = users[userId] || { money: 0, fishCaught: 0, level: 1, exp: 0 };
+    const userFish = inventory[userId]?.fish || [];
+    
+    const totalValue = userFish.reduce((sum, fish) => sum + fish.harga, 0);
+    const rareFish = userFish.filter(fish => fish.rarity !== 'common').length;
+    const commonFish = userFish.filter(fish => fish.rarity === 'common').length;
+    
+    const stats = `📊 *FISHING STATISTICS* 📊\n━━━━━━━━━━━━━━━━━━\n\n` +
+                 `👤 *${pushName}*\n\n` +
+                 `💵 Money: Rp${userData.money.toLocaleString()}\n` +
+                 `🎣 Total Caught: ${userData.fishCaught} fish\n` +
+                 `📦 Inventory: ${userFish.length} fish\n` +
+                 `💰 Inventory Value: Rp${totalValue.toLocaleString()}\n` +
+                 `⭐ Rare Fish: ${rareFish} fish\n` +
+                 `📈 Common Fish: ${commonFish} fish\n` +
+                 `🎯 Level: ${userData.level}\n` +
+                 `⚡ EXP: ${userData.exp}/100`;
+    
+    m.reply(stats);
+}
+break;
+
+case 'rod': case 'pancingan': {
+    const rods = loadJSON('./database/rods.json');
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    
+    const userData = users[userId] || { equipment: 'basic_rod' };
+    const currentRod = rods[userData.equipment];
+    
+    let rodList = `🎣 *ROD INFORMATION* 🎣\n\n`;
+    rodList += `🎯 *Rod Saat Ini:* ${currentRod?.name || userData.equipment}\n`;
+    rodList += `📊 Effectiveness: ${currentRod?.effectiveness || 1.0}x\n\n`;
+    rodList += `🏪 *AVAILABLE RODS:*\n`;
+    
+    Object.entries(rods).forEach(([key, rod]) => {
+        rodList += `🎣 *${rod.name}*\n`;
+        rodList += `   📈 Effectiveness: ${rod.effectiveness}x\n`;
+        rodList += `   💰 Price: Rp${rod.price.toLocaleString()}\n`;
+        rodList += `   🛒 ${prefix}buyrod ${key}\n\n`;
+    });
+    
+    m.reply(rodList);
+}
+break;
+
+case 'buyrod': {
+    const rodName = args[0]?.toLowerCase();
+    const rods = loadJSON('./database/rods.json');
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    
+    if (!rodName || !rods[rodName]) {
+        return m.reply(`🎣 *BELI ROD* 🎣\n\n` +
+                      `Format: ${prefix}buyrod <nama_rod>\n\n` +
+                      `💡 Gunakan ${prefix}rod untuk lihat daftar`);
+    }
+    
+    const rod = rods[rodName];
+    const userData = users[userId] || { money: 0 };
+    
+    if (userData.money < rod.price) {
+        return m.reply(`❌ *Uang tidak cukup!*\n\n` +
+                      `💵 Uang kamu: Rp${userData.money.toLocaleString()}\n` +
+                      `🎣 Diperlukan: Rp${rod.price.toLocaleString()}`);
+    }
+    
+    userData.money -= rod.price;
+    userData.equipment = rodName;
+    
+    saveJSON('./database/users.json', users);
+    
+    m.reply(`✅ *Berhasil beli rod!*\n\n` +
+            `🎣 ${rod.name}\n` +
+            `📈 Effectiveness: ${rod.effectiveness}x\n` +
+            `💵 Harga: Rp${rod.price.toLocaleString()}\n` +
+            `💸 Sisa uang: Rp${userData.money.toLocaleString()}`);
+}
+break;
+
+      // ==================== WORK SYSTEM (8 FITUR) ====================
       case 'work': case 'kerja': {
     const jobName = args[0]?.toLowerCase();
     if (!jobName || !jobs[jobName]) {
@@ -547,7 +717,61 @@ break;
 }
 break;
 
-      // ==================== HUNTING SYSTEM ====================
+case 'worklist': case 'listkerja': {
+    let workList = `💼 *DAFTAR PEKERJAAN* 💼\n\n`;
+    
+    Object.entries(jobs).forEach(([key, job]) => {
+        workList += `👨‍💼 *${job.name}*\n`;
+        workList += `   💰 Gaji: Rp${job.income.min.toLocaleString()} - Rp${job.income.max.toLocaleString()}\n`;
+        workList += `   ⚡ Energy: ${job.energyCost} | ⏱️ ${job.time/1000}s\n`;
+        workList += `   🛠️ ${prefix}work ${key}\n\n`;
+    });
+    
+    m.reply(workList);
+}
+break;
+
+case 'workstats': case 'kerjastats': {
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    const userData = users[userId] || { workCount: 0, money: 0 };
+    
+    const stats = `📊 *STATISTIK PEKERJAAN* 📊\n\n` +
+                 `👤 *${pushName}*\n\n` +
+                 `💼 Total Kerja: ${userData.workCount || 0} kali\n` +
+                 `💰 Total Penghasilan: Rp${userData.money || 0}\n` +
+                 `⚡ Energy: ${userData.energy || 100}/100\n` +
+                 `⭐ Level: ${userData.level || 1}\n\n` +
+                 `💡 *Command:*\n` +
+                 `• ${prefix}work <pekerjaan> - Mulai bekerja\n` +
+                 `• ${prefix}worklist - Lihat daftar pekerjaan`;
+    
+    m.reply(stats);
+}
+break;
+
+case 'worktop': case 'topkerja': {
+    const users = loadJSON('./database/users.json');
+    
+    const workRankings = Object.entries(users)
+        .filter(([_, user]) => user.workCount > 0)
+        .sort((a, b) => (b[1].workCount || 0) - (a[1].workCount || 0))
+        .slice(0, 10);
+    
+    let topList = `🏆 *TOP WORKERS* 🏆\n\n`;
+    
+    workRankings.forEach(([userId, user], index) => {
+        const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "▫️";
+        const name = userId.split('@')[0];
+        topList += `${rank} *${name}*\n`;
+        topList += `   💼 ${user.workCount || 0} jobs | 💰 Rp${user.money?.toLocaleString() || 0}\n\n`;
+    });
+    
+    m.reply(topList);
+}
+break;
+
+      // ==================== HUNTING SYSTEM (8 FITUR) ====================
       case 'hunt': case 'berburu': case 'buru': {
     const spotName = args[0]?.toLowerCase();
     if (!spotName || !huntingSpots[spotName]) {
@@ -612,7 +836,67 @@ break;
 }
 break;
 
-      // ==================== ECONOMY SYSTEM ====================
+case 'huntlist': case 'listburu': {
+    let huntList = `🎯 *DAFTAR TEMPAT BERBURU* 🎯\n\n`;
+    
+    Object.entries(huntingSpots).forEach(([key, spot]) => {
+        huntList += `📍 *${spot.name}*\n`;
+        huntList += `   🎯 Success Rate: ${spot.successRate}%\n`;
+        huntList += `   ⏱️ Travel Time: ${spot.travelTime/1000}s\n`;
+        huntList += `   🐾 Animals: ${spot.animals.join(', ')}\n`;
+        huntList += `   🛒 ${prefix}hunt ${key}\n\n`;
+    });
+    
+    m.reply(huntList);
+}
+break;
+
+case 'huntstats': case 'burustats': {
+    const users = loadJSON('./database/users.json');
+    const inventory = loadJSON('./database/inventory.json');
+    const userId = m.sender;
+    
+    const userData = users[userId] || { animalsCaught: 0 };
+    const userAnimals = inventory[userId]?.animals || [];
+    
+    const totalValue = userAnimals.reduce((sum, animal) => sum + animal.value, 0);
+    
+    const stats = `📊 *STATISTIK BERBURU* 📊\n\n` +
+                 `👤 *${pushName}*\n\n` +
+                 `🐾 Total Tangkapan: ${userData.animalsCaught || 0}\n` +
+                 `📦 Hewan di Inventory: ${userAnimals.length}\n` +
+                 `💰 Nilai Inventory: Rp${totalValue.toLocaleString()}\n` +
+                 `⚡ Energy: ${userData.energy || 100}/100\n\n` +
+                 `💡 *Command:*\n` +
+                 `• ${prefix}hunt <spot> - Mulai berburu\n` +
+                 `• ${prefix}huntlist - Lihat spot berburu`;
+    
+    m.reply(stats);
+}
+break;
+
+case 'hunttop': case 'topburu': {
+    const users = loadJSON('./database/users.json');
+    
+    const huntRankings = Object.entries(users)
+        .filter(([_, user]) => user.animalsCaught > 0)
+        .sort((a, b) => (b[1].animalsCaught || 0) - (a[1].animalsCaught || 0))
+        .slice(0, 10);
+    
+    let topList = `🏆 *TOP HUNTERS* 🏆\n\n`;
+    
+    huntRankings.forEach(([userId, user], index) => {
+        const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "▫️";
+        const name = userId.split('@')[0];
+        topList += `${rank} *${name}*\n`;
+        topList += `   🐾 ${user.animalsCaught || 0} animals\n\n`;
+    });
+    
+    m.reply(topList);
+}
+break;
+
+      // ==================== ECONOMY SYSTEM (12 FITUR) ====================
       case 'balance': case 'saldo': case 'uang': {
     const users = loadJSON('./database/users.json');
     const userId = m.sender;
@@ -721,8 +1005,7 @@ case 'transfer': {
 }
 break;
 
-      // ==================== CRYPTO SYSTEM ====================
-      case 'crypto': case 'kripto': {
+case 'crypto': case 'kripto': {
     const cryptos = loadJSON('./database/crypto.json');
     
     let cryptoList = "💰 *MARKET CRYPTO* 💰\n\n";
@@ -788,6 +1071,44 @@ case 'belicrypto': {
 }
 break;
 
+case 'jualcrypto': {
+    const code = args[0]?.toUpperCase();
+    const amount = parseInt(args[1]);
+    
+    if (!code || !amount || amount <= 0) {
+        return m.reply(`💰 *JUAL CRYPTO* 💰\n\n` +
+                      `Format: ${prefix}jualcrypto <kode> <jumlah>\n` +
+                      `Contoh: ${prefix}jualcrypto DRVN 10`);
+    }
+    
+    const cryptos = loadJSON('./database/crypto.json');
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    const userData = users[userId] || { crypto: {} };
+    
+    if (!userData.crypto || !userData.crypto[code] || userData.crypto[code] < amount) {
+        return m.reply(`❌ *Crypto tidak cukup!*\n\n` +
+                      `📊 ${code} yang dimiliki: ${userData.crypto[code] || 0}\n` +
+                      `💳 Ingin jual: ${amount}`);
+    }
+    
+    const crypto = cryptos[code];
+    const totalValue = crypto.price * amount;
+    
+    userData.crypto[code] -= amount;
+    if (userData.crypto[code] === 0) delete userData.crypto[code];
+    userData.money = (userData.money || 0) + totalValue;
+    
+    saveJSON('./database/users.json', users);
+    
+    m.reply(`✅ *Berhasil jual crypto!*\n\n` +
+            `💰 ${crypto.name} (${code})\n` +
+            `📊 Jumlah: ${amount} coin\n` +
+            `💵 Total: Rp${totalValue.toLocaleString()}\n` +
+            `💸 Uang sekarang: Rp${userData.money.toLocaleString()}`);
+}
+break;
+
 case 'portofolio': case 'porto': {
     const users = loadJSON('./database/users.json');
     const cryptos = loadJSON('./database/crypto.json');
@@ -820,8 +1141,7 @@ case 'portofolio': case 'porto': {
 }
 break;
 
-      // ==================== BUSINESS SYSTEM ====================
-      case 'bisnis': case 'usaha': {
+case 'bisnis': case 'usaha': {
     const businesses = loadJSON('./database/businesses.json');
     
     let bizList = "🏢 *DAFTAR BISNIS* 🏢\n\n";
@@ -883,7 +1203,64 @@ case 'bukausaha': {
 }
 break;
 
-      // ==================== RPG SYSTEM ====================
+case 'tarikhasil': {
+    const userBiz = loadJSON('./database/user_business.json');
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    
+    if (!userBiz[userId] || Object.keys(userBiz[userId]).length === 0) {
+        return m.reply("❌ *Kamu tidak punya bisnis!*\n\n" +
+                      "💡 Buka bisnis dulu: " + prefix + "bisnis");
+    }
+    
+    let totalProfit = 0;
+    const now = Date.now();
+    
+    Object.entries(userBiz[userId]).forEach(([bizType, biz]) => {
+        const hoursPassed = Math.floor((now - (biz.lastCollection || now)) / (60 * 60 * 1000));
+        const profit = hoursPassed * biz.profit;
+        totalProfit += profit;
+        biz.lastCollection = now;
+    });
+    
+    if (totalProfit <= 0) {
+        return m.reply("❌ *Belum ada profit yang bisa ditarik!*\n\n" +
+                      "💡 Profit dihitung per jam, tunggu beberapa saat lagi");
+    }
+    
+    users[userId].money = (users[userId].money || 0) + totalProfit;
+    
+    saveJSON('./database/users.json', users);
+    saveJSON('./database/user_business.json', userBiz);
+    
+    m.reply(`✅ *Berhasil tarik profit!*\n\n` +
+            `💰 Total: Rp${totalProfit.toLocaleString()}\n` +
+            `💵 Uang sekarang: Rp${users[userId].money.toLocaleString()}`);
+}
+break;
+
+case 'top': case 'leaderboard': {
+    const users = loadJSON('./database/users.json');
+    
+    const leaderboard = Object.entries(users)
+        .filter(([_, user]) => user.money > 0)
+        .sort((a, b) => (b[1].money || 0) - (a[1].money || 0))
+        .slice(0, 10);
+    
+    let topList = "🏆 *LEADERBOARD KEKAYAAN* 🏆\n\n";
+    
+    leaderboard.forEach(([userId, user], index) => {
+        const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "▫️";
+        const name = userId.split('@')[0];
+        topList += `${rank} *${name}*\n`;
+        topList += `   💰 Rp${(user.money || 0).toLocaleString()}\n\n`;
+    });
+    
+    m.reply(topList);
+}
+break;
+
+      // ==================== RPG SYSTEM (8 FITUR) ====================
       case 'profil': case 'profile': {
     const users = loadJSON('./database/users.json');
     const stats = loadJSON('./database/stats.json');
@@ -959,8 +1336,49 @@ case 'latih': case 'train': {
 }
 break;
 
-      // ==================== EXPLORATION SYSTEM ====================
-      case 'jelajah': case 'explore': {
+case 'duel': {
+    if (!m.mentionedJid || m.mentionedJid.length === 0) {
+        return m.reply(`⚔️ *DUEL SYSTEM* ⚔️\n\n` +
+                      `Format: ${prefix}duel @user\n` +
+                      `Contoh: ${prefix}duel @${userId}`);
+    }
+    
+    const targetUser = m.mentionedJid[0];
+    if (targetUser === m.sender) {
+        return m.reply("❌ *Tidak bisa duel diri sendiri!*");
+    }
+    
+    const stats = loadJSON('./database/stats.json');
+    const attackerStats = stats[m.sender] || { hp: 100, attack: 10, defense: 5 };
+    const defenderStats = stats[targetUser] || { hp: 100, attack: 10, defense: 5 };
+    
+    // Hitung damage
+    const damage = Math.max(1, attackerStats.attack - defenderStats.defense);
+    defenderStats.hp = Math.max(0, defenderStats.hp - damage);
+    
+    let result = `⚔️ *HASIL DUEL* ⚔️\n\n`;
+    result += `🗡️ ${pushName} menyerang!\n`;
+    result += `💥 Damage: ${damage}\n`;
+    result += `❤️ HP ${targetUser.split('@')[0]}: ${defenderStats.hp}/100\n\n`;
+    
+    if (defenderStats.hp <= 0) {
+        result += `🎉 *${pushName} MENANG!*\n`;
+        // Berikan reward
+        const users = loadJSON('./database/users.json');
+        users[m.sender].money = (users[m.sender].money || 0) + 1000;
+        users[m.sender].exp = (users[m.sender].exp || 0) + 10;
+        saveJSON('./database/users.json', users);
+        result += `💰 Reward: Rp1.000 + 10 EXP`;
+    } else {
+        result += `🛡️ ${targetUser.split('@')[0]} masih bertahan!`;
+    }
+    
+    saveJSON('./database/stats.json', stats);
+    m.reply(result);
+}
+break;
+
+case 'jelajah': case 'explore': {
     const locationName = args[0]?.toLowerCase();
     if (!locationName || !locations[locationName]) {
         return m.reply(`🗺️ *DAFTAR LOKASI* 🗺️\n\n` +
@@ -1037,7 +1455,111 @@ break;
 }
 break;
 
-      // ==================== INVENTORY SYSTEM ====================
+case 'lawannpc': {
+    const stats = loadJSON('./database/stats.json');
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    
+    const userStats = stats[userId] || { hp: 100, attack: 10, defense: 5 };
+    const userData = users[userId] || { money: 0 };
+    
+    if (userStats.hp <= 0) {
+        return m.reply(`❌ *HP kamu habis!*\n\n` +
+                      `💡 Gunakan ${prefix}heal untuk memulihkan HP`);
+    }
+    
+    const npcTypes = [
+        { name: 'Goblin', hp: 30, attack: 8, defense: 3, reward: 500 },
+        { name: 'Bandit', hp: 50, attack: 12, defense: 5, reward: 800 },
+        { name: 'Serigala', hp: 25, attack: 10, defense: 2, reward: 400 },
+        { name: 'Orc', hp: 80, attack: 15, defense: 8, reward: 1200 }
+    ];
+    
+    const npc = npcTypes[Math.floor(Math.random() * npcTypes.length)];
+    
+    // Player attack
+    const playerDamage = Math.max(1, userStats.attack - npc.defense);
+    npc.hp -= playerDamage;
+    
+    let battleLog = `⚔️ *PERTEMPURAN VS ${npc.name}* ⚔️\n\n`;
+    battleLog += `🗡️ ${pushName} menyerang!\n`;
+    battleLog += `💥 Damage: ${playerDamage}\n`;
+    battleLog += `❤️ ${npc.name} HP: ${Math.max(0, npc.hp)}/${npc.hp + playerDamage}\n\n`;
+    
+    if (npc.hp <= 0) {
+        battleLog += `🎉 *MENANG! ${npc.name} dikalahkan!*\n`;
+        battleLog += `💰 Reward: Rp${npc.reward.toLocaleString()}\n`;
+        battleLog += `⭐ EXP: +15\n`;
+        
+        userData.money = (userData.money || 0) + npc.reward;
+        userData.exp = Math.min(100, (userData.exp || 0) + 15);
+        
+        // Level up check
+        if (userData.exp >= 100) {
+            userData.level = (userData.level || 1) + 1;
+            userData.exp = 0;
+            userStats.attack += 2;
+            userStats.defense += 1;
+            battleLog += `\n🎉 *LEVEL UP! Level ${userData.level}*`;
+        }
+    } else {
+        // NPC counter attack
+        const npcDamage = Math.max(1, npc.attack - userStats.defense);
+        userStats.hp = Math.max(0, userStats.hp - npcDamage);
+        
+        battleLog += `🐺 ${npc.name} membalas!\n`;
+        battleLog += `💥 Damage: ${npcDamage}\n`;
+        battleLog += `❤️ HP ${pushName}: ${userStats.hp}/100\n\n`;
+        
+        if (userStats.hp <= 0) {
+            battleLog += `💀 *KALAH! ${pushName} tumbang!*\n`;
+            battleLog += `💡 Gunakan ${prefix}heal untuk memulihkan`;
+        } else {
+            battleLog += `🛡️ Masih bertahan! Lanjutkan pertarungan!`;
+        }
+    }
+    
+    saveJSON('./database/stats.json', stats);
+    saveJSON('./database/users.json', users);
+    
+    m.reply(battleLog);
+}
+break;
+
+case 'heal': {
+    const stats = loadJSON('./database/stats.json');
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    
+    const userStats = stats[userId] || { hp: 100 };
+    const userData = users[userId] || { money: 0 };
+    
+    if (userStats.hp >= 100) {
+        return m.reply(`❤️ *HP sudah penuh!*\n\n` +
+                      `💡 HP: ${userStats.hp}/100`);
+    }
+    
+    const healCost = 500;
+    if (userData.money < healCost) {
+        return m.reply(`❌ *Uang tidak cukup untuk heal!*\n\n` +
+                      `💵 Diperlukan: Rp${healCost}\n` +
+                      `💵 Uang kamu: Rp${userData.money.toLocaleString()}`);
+    }
+    
+    userData.money -= healCost;
+    userStats.hp = 100;
+    
+    saveJSON('./database/stats.json', stats);
+    saveJSON('./database/users.json', users);
+    
+    m.reply(`❤️ *Berhasil heal!*\n\n` +
+            `💊 HP dipulihkan: 100/100\n` +
+            `💵 Biaya: Rp${healCost}\n` +
+            `💸 Sisa uang: Rp${userData.money.toLocaleString()}`);
+}
+break;
+
+      // ==================== INVENTORY & SHOP SYSTEM (8 FITUR) ====================
       case 'inventory': case 'inv': case 'tas': {
     const inventory = loadJSON('./database/inventory.json');
     const userId = m.sender;
@@ -1172,7 +1694,131 @@ case 'sellall': case 'jualall': {
 }
 break;
 
-      // ==================== UTILITY COMMANDS ====================
+case 'sellfish': case 'jualikan': {
+    const inventory = loadJSON('./database/inventory.json');
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    
+    if (!inventory[userId] || !inventory[userId].fish || inventory[userId].fish.length === 0) {
+        return m.reply("❌ *Tidak ada ikan untuk dijual!*");
+    }
+    
+    let totalEarned = 0;
+    let fishSold = inventory[userId].fish.length;
+    
+    inventory[userId].fish.forEach(fish => {
+        totalEarned += fish.value || fish.harga;
+    });
+    
+    // Update user money
+    if (!users[userId]) users[userId] = { money: 0 };
+    users[userId].money = (users[userId].money || 0) + totalEarned;
+    
+    // Clear fish inventory
+    inventory[userId].fish = [];
+    
+    saveJSON('./database/inventory.json', inventory);
+    saveJSON('./database/users.json', users);
+    
+    m.reply(`✅ *Berhasil menjual ${fishSold} ikan!*\n\n` +
+            `💰 Penghasilan: *Rp${totalEarned.toLocaleString()}*\n` +
+            `💵 Uang sekarang: *Rp${users[userId].money.toLocaleString()}*`);
+}
+break;
+
+case 'sellanimals': case 'jualhewan': {
+    const inventory = loadJSON('./database/inventory.json');
+    const users = loadJSON('./database/users.json');
+    const userId = m.sender;
+    
+    if (!inventory[userId] || !inventory[userId].animals || inventory[userId].animals.length === 0) {
+        return m.reply("❌ *Tidak ada hewan untuk dijual!*");
+    }
+    
+    let totalEarned = 0;
+    let animalsSold = inventory[userId].animals.length;
+    
+    inventory[userId].animals.forEach(animal => {
+        totalEarned += animal.value;
+    });
+    
+    // Update user money
+    if (!users[userId]) users[userId] = { money: 0 };
+    users[userId].money = (users[userId].money || 0) + totalEarned;
+    
+    // Clear animals inventory
+    inventory[userId].animals = [];
+    
+    saveJSON('./database/inventory.json', inventory);
+    saveJSON('./database/users.json', users);
+    
+    m.reply(`✅ *Berhasil menjual ${animalsSold} hewan!*\n\n` +
+            `💰 Penghasilan: *Rp${totalEarned.toLocaleString()}*\n` +
+            `💵 Uang sekarang: *Rp${users[userId].money.toLocaleString()}*`);
+}
+break;
+
+case 'shop': case 'toko': {
+    const shopItems = loadJSON('./database/shop_items.json');
+    
+    let shopList = "🛒 *TOKO UMPAN & ITEM* 🛒\n━━━━━━━━━━━━━━━━━━\n\n";
+    
+    Object.entries(shopItems).forEach(([key, item]) => {
+        shopList += `🛍️ *${item.name}*\n`;
+        shopList += `   💰 Harga: Rp${item.price.toLocaleString()}\n`;
+        shopList += `   📝 ${item.description}\n`;
+        shopList += `   🛒 Beli: ${prefix}buy ${key}\n\n`;
+    });
+    
+    shopList += `💵 *Gunakan:* ${prefix}buy <item>\n` +
+                `📦 *Cek inventory:* ${prefix}inv`;
+    
+    m.reply(shopList);
+}
+break;
+
+case 'buy': case 'beli': {
+    const itemName = args[0]?.toLowerCase();
+    const shopItems = loadJSON('./database/shop_items.json');
+    const users = loadJSON('./database/users.json');
+    const inventory = loadJSON('./database/inventory.json');
+    const userId = m.sender;
+    
+    if (!itemName || !shopItems[itemName]) {
+        return m.reply(`❌ *Item tidak ditemukan!*\n\n` +
+                      `🛒 Gunakan ${prefix}shop untuk melihat daftar item`);
+    }
+    
+    const item = shopItems[itemName];
+    const user = users[userId] || { money: 0 };
+    
+    if (user.money < item.price) {
+        return m.reply(`❌ *Uang tidak cukup!*\n\n` +
+                      `💵 Harga: Rp${item.price.toLocaleString()}\n` +
+                      `💰 Uang kamu: Rp${user.money.toLocaleString()}\n\n` +
+                      `💡 Kerja dulu: ${prefix}worklist`);
+    }
+    
+    // Kurangi uang
+    user.money -= item.price;
+    
+    // Tambah ke inventory
+    if (!inventory[userId]) inventory[userId] = { fish: [], bait: [], animals: [], items: [] };
+    if (!inventory[userId].bait) inventory[userId].bait = [];
+    
+    inventory[userId].bait.push(itemName);
+    
+    saveJSON('./database/users.json', users);
+    saveJSON('./database/inventory.json', inventory);
+    
+    m.reply(`✅ *Berhasil membeli ${item.name}!*\n\n` +
+            `📦 Ditambahkan ke inventory\n` +
+            `💰 Uang tersisa: Rp${user.money.toLocaleString()}\n\n` +
+            `🎣 Gunakan: ${prefix}fish`);
+}
+break;
+
+      // ==================== UTILITY COMMANDS (6 FITUR) ====================
       case 'energy': case 'energi': {
     const users = loadJSON('./database/users.json');
     const userId = m.sender;
@@ -1214,106 +1860,347 @@ case 'rest': case 'istirahat': {
 }
 break;
 
-      // ==================== ADDITIONAL SYSTEMS ====================
-      case 'top': case 'leaderboard': {
+case 'daily': case 'harian': {
     const users = loadJSON('./database/users.json');
-    
-    const leaderboard = Object.entries(users)
-        .filter(([_, user]) => user.money > 0)
-        .sort((a, b) => (b[1].money || 0) - (a[1].money || 0))
-        .slice(0, 10);
-    
-    let topList = "🏆 *LEADERBOARD KEKAYAAN* 🏆\n\n";
-    
-    leaderboard.forEach(([userId, user], index) => {
-        const rank = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "▫️";
-        const name = userId.split('@')[0];
-        topList += `${rank} *${name}*\n`;
-        topList += `   💰 Rp${(user.money || 0).toLocaleString()}\n\n`;
-    });
-    
-    m.reply(topList);
-}
-break;
-
-case 'tarikhasil': {
-    const userBiz = loadJSON('./database/user_business.json');
-    const users = loadJSON('./database/users.json');
+    const daily = loadJSON('./database/daily.json');
     const userId = m.sender;
     
-    if (!userBiz[userId] || Object.keys(userBiz[userId]).length === 0) {
-        return m.reply("❌ *Kamu tidak punya bisnis!*\n\n" +
-                      "💡 Buka bisnis dulu: " + prefix + "bisnis");
-    }
-    
-    let totalProfit = 0;
     const now = Date.now();
+    const lastDaily = daily[userId] || 0;
+    const oneDay = 24 * 60 * 60 * 1000;
     
-    Object.entries(userBiz[userId]).forEach(([bizType, biz]) => {
-        const hoursPassed = Math.floor((now - (biz.lastCollection || now)) / (60 * 60 * 1000));
-        const profit = hoursPassed * biz.profit;
-        totalProfit += profit;
-        biz.lastCollection = now;
-    });
-    
-    if (totalProfit <= 0) {
-        return m.reply("❌ *Belum ada profit yang bisa ditarik!*\n\n" +
-                      "💡 Profit dihitung per jam, tunggu beberapa saat lagi");
+    if (now - lastDaily < oneDay) {
+        const nextDaily = lastDaily + oneDay;
+        const hoursLeft = Math.ceil((nextDaily - now) / (60 * 60 * 1000));
+        return m.reply(`⏰ *Daily reward sudah diambil!*\n\n` +
+                      `💡 Kembali dalam ${hoursLeft} jam`);
     }
     
-    users[userId].money = (users[userId].money || 0) + totalProfit;
+    const reward = 5000;
+    users[userId].money = (users[userId].money || 0) + reward;
+    daily[userId] = now;
     
     saveJSON('./database/users.json', users);
-    saveJSON('./database/user_business.json', userBiz);
+    saveJSON('./database/daily.json', daily);
     
-    m.reply(`✅ *Berhasil tarik profit!*\n\n` +
-            `💰 Total: Rp${totalProfit.toLocaleString()}\n` +
-            `💵 Uang sekarang: Rp${users[userId].money.toLocaleString()}`);
+    m.reply(`🎁 *DAILY REWARD* 🎁\n\n` +
+            `💰 Dapat: Rp${reward.toLocaleString()}\n` +
+            `💵 Total uang: Rp${users[userId].money.toLocaleString()}\n\n` +
+            `⏰ Kembali besok untuk reward berikutnya!`);
 }
 break;
 
-case 'duel': {
-    if (!m.mentionedJid || m.mentionedJid.length === 0) {
-        return m.reply(`⚔️ *DUEL SYSTEM* ⚔️\n\n` +
-                      `Format: ${prefix}duel @user\n` +
-                      `Contoh: ${prefix}duel @${userId}`);
-    }
-    
-    const targetUser = m.mentionedJid[0];
-    if (targetUser === m.sender) {
-        return m.reply("❌ *Tidak bisa duel diri sendiri!*");
-    }
-    
-    const stats = loadJSON('./database/stats.json');
-    const attackerStats = stats[m.sender] || { hp: 100, attack: 10, defense: 5 };
-    const defenderStats = stats[targetUser] || { hp: 100, attack: 10, defense: 5 };
-    
-    // Hitung damage
-    const damage = Math.max(1, attackerStats.attack - defenderStats.defense);
-    defenderStats.hp = Math.max(0, defenderStats.hp - damage);
-    
-    let result = `⚔️ *HASIL DUEL* ⚔️\n\n`;
-    result += `🗡️ ${pushName} menyerang!\n`;
-    result += `💥 Damage: ${damage}\n`;
-    result += `❤️ HP ${targetUser.split('@')[0]}: ${defenderStats.hp}/100\n\n`;
-    
-    if (defenderStats.hp <= 0) {
-        result += `🎉 *${pushName} MENANG!*\n`;
-        // Berikan reward
+      // ==================== ADMIN/OWNER COMMANDS (12 FITUR) ====================
+      case 'addmoney': {
+        if (!isOwner(sender)) return m.reply("❌ *Owner only!*");
+        
+        const target = m.mentionedJid?.[0] || sender;
+        const amount = parseInt(args[1]);
+        
+        if (!amount || amount <= 0) return m.reply("❌ *Jumlah tidak valid!*");
+        
         const users = loadJSON('./database/users.json');
-        users[m.sender].money = (users[m.sender].money || 0) + 1000;
-        users[m.sender].exp = (users[m.sender].exp || 0) + 10;
+        if (!users[target]) users[target] = { money: 0 };
+        users[target].money = (users[target].money || 0) + amount;
+        
         saveJSON('./database/users.json', users);
-        result += `💰 Reward: Rp1.000 + 10 EXP`;
-    } else {
-        result += `🛡️ ${targetUser.split('@')[0]} masih bertahan!`;
+        
+        const targetName = target.split('@')[0];
+        m.reply(`✅ *Berhasil menambah uang!*\n\n` +
+                `👤 Kepada: ${targetName}\n` +
+                `💰 Jumlah: Rp${amount.toLocaleString()}\n` +
+                `💵 Total: Rp${users[target].money.toLocaleString()}`);
     }
-    
-    saveJSON('./database/stats.json', stats);
-    m.reply(result);
-}
-break;
+    break;
 
+    case 'setmoney': {
+        if (!isOwner(sender)) return m.reply("❌ *Owner only!*");
+        
+        const target = m.mentionedJid?.[0] || sender;
+        const amount = parseInt(args[1]);
+        
+        if (!amount || amount < 0) return m.reply("❌ *Jumlah tidak valid!*");
+        
+        const users = loadJSON('./database/users.json');
+        if (!users[target]) users[target] = {};
+        users[target].money = amount;
+        
+        saveJSON('./database/users.json', users);
+        
+        const targetName = target.split('@')[0];
+        m.reply(`✅ *Berhasil set uang!*\n\n` +
+                `👤 Kepada: ${targetName}\n` +
+                `💰 Jumlah: Rp${amount.toLocaleString()}`);
+    }
+    break;
+
+    case 'additem': {
+        if (!isAdmin(sender)) return m.reply("❌ *Admin only!*");
+        
+        const target = m.mentionedJid?.[0] || sender;
+        const itemName = args[1];
+        const quantity = parseInt(args[2]) || 1;
+        
+        if (!itemName) return m.reply("❌ *Nama item harus diisi!*");
+        
+        const inventory = loadJSON('./database/inventory.json');
+        if (!inventory[target]) inventory[target] = { items: [] };
+        if (!inventory[target].items) inventory[target].items = [];
+        
+        for (let i = 0; i < quantity; i++) {
+            inventory[target].items.push(itemName);
+        }
+        
+        saveJSON('./database/inventory.json', inventory);
+        
+        const targetName = target.split('@')[0];
+        m.reply(`✅ *Berhasil menambah item!*\n\n` +
+                `👤 Kepada: ${targetName}\n` +
+                `🎁 Item: ${itemName}\n` +
+                `📦 Jumlah: ${quantity}`);
+    }
+    break;
+
+    case 'addfish': {
+        if (!isAdmin(sender)) return m.reply("❌ *Admin only!*");
+        
+        const target = m.mentionedJid?.[0] || sender;
+        const fishName = args.slice(1).join(' ');
+        
+        if (!fishName) return m.reply("❌ *Nama ikan harus diisi!*");
+        
+        const fishData = loadJSON('./database/ikan.json');
+        const fish = fishData.find(f => f.nama.toLowerCase().includes(fishName.toLowerCase()));
+        
+        if (!fish) return m.reply("❌ *Ikan tidak ditemukan!*");
+        
+        const inventory = loadJSON('./database/inventory.json');
+        if (!inventory[target]) inventory[target] = { fish: [] };
+        if (!inventory[target].fish) inventory[target].fish = [];
+        
+        inventory[target].fish.push(fish);
+        
+        saveJSON('./database/inventory.json', inventory);
+        
+        const targetName = target.split('@')[0];
+        m.reply(`✅ *Berhasil menambah ikan!*\n\n` +
+                `👤 Kepada: ${targetName}\n` +
+                `🐟 Ikan: ${fish.nama}\n` +
+                `💰 Value: Rp${fish.harga.toLocaleString()}`);
+    }
+    break;
+
+    case 'addanimal': {
+        if (!isAdmin(sender)) return m.reply("❌ *Admin only!*");
+        
+        const target = m.mentionedJid?.[0] || sender;
+        const animalName = args[1];
+        
+        if (!animalName) return m.reply("❌ *Nama hewan harus diisi!*");
+        
+        const animalData = animals[animalName];
+        if (!animalData) return m.reply("❌ *Hewan tidak ditemukan!*");
+        
+        const inventory = loadJSON('./database/inventory.json');
+        if (!inventory[target]) inventory[target] = { animals: [] };
+        if (!inventory[target].animals) inventory[target].animals = [];
+        
+        inventory[target].animals.push({
+            name: animalName,
+            value: animalData.value,
+            meat: animalData.meat
+        });
+        
+        saveJSON('./database/inventory.json', inventory);
+        
+        const targetName = target.split('@')[0];
+        m.reply(`✅ *Berhasil menambah hewan!*\n\n` +
+                `👤 Kepada: ${targetName}\n` +
+                `🐾 Hewan: ${animalName}\n` +
+                `💰 Value: Rp${animalData.value.toLocaleString()}`);
+    }
+    break;
+
+    case 'resetuser': {
+        if (!isOwner(sender)) return m.reply("❌ *Owner only!*");
+        
+        const target = m.mentionedJid?.[0];
+        if (!target) return m.reply("❌ *Tag user yang ingin direset!*");
+        
+        const users = loadJSON('./database/users.json');
+        const inventory = loadJSON('./database/inventory.json');
+        const stats = loadJSON('./database/stats.json');
+        
+        // Reset user data
+        users[target] = { money: 0, level: 1, exp: 0, energy: 100 };
+        inventory[target] = { fish: [], bait: [], animals: [], items: [] };
+        stats[target] = { hp: 100, stamina: 50, attack: 10, defense: 5, job: 'pengembara' };
+        
+        saveJSON('./database/users.json', users);
+        saveJSON('./database/inventory.json', inventory);
+        saveJSON('./database/stats.json', stats);
+        
+        const targetName = target.split('@')[0];
+        m.reply(`✅ *Berhasil reset user!*\n\n` +
+                `👤 User: ${targetName}\n` +
+                `🔄 Semua data telah direset ke default`);
+    }
+    break;
+
+    case 'broadcast': {
+        if (!isOwner(sender)) return m.reply("❌ *Owner only!*");
+        
+        const message = args.slice(0).join(' ');
+        if (!message) return m.reply("❌ *Pesan harus diisi!*");
+        
+        const users = loadJSON('./database/users.json');
+        const userList = Object.keys(users);
+        
+        let success = 0;
+        let failed = 0;
+        
+        for (const user of userList) {
+            try {
+                await conn.sendMessage(user, {
+                    text: `📢 *BROADCAST*\n\n${message}\n\n- ${global.namebotz}`
+                });
+                success++;
+            } catch (e) {
+                failed++;
+            }
+            await sleep(1000); // Delay 1 detik antar pesan
+        }
+        
+        m.reply(`✅ *Broadcast selesai!*\n\n` +
+                `✅ Berhasil: ${success} user\n` +
+                `❌ Gagal: ${failed} user`);
+    }
+    break;
+
+    case 'addfishdata': {
+        if (!isOwner(sender)) return m.reply("❌ *Owner only!*");
+        
+        const fishData = loadJSON('./database/ikan.json');
+        const newFish = {
+            nama: args[1],
+            harga: parseInt(args[2]),
+            rarity: args[3] || 'common',
+            berat_min: parseFloat(args[4]) || 0.1,
+            berat_max: parseFloat(args[5]) || 1.0,
+            lokasi: args[6] || 'Sungai',
+            deskripsi: args.slice(7).join(' ') || 'Ikan baru'
+        };
+        
+        if (!newFish.nama || !newFish.harga) {
+            return m.reply(`❌ *Format: ${prefix}addfishdata <nama> <harga> <rarity> <berat_min> <berat_max> <lokasi> <deskripsi>*`);
+        }
+        
+        fishData.push(newFish);
+        saveJSON('./database/ikan.json', fishData);
+        
+        m.reply(`✅ *Berhasil menambah data ikan!*\n\n` +
+                `🐟 ${newFish.nama}\n` +
+                `💰 Rp${newFish.harga.toLocaleString()}\n` +
+                `⭐ ${newFish.rarity}\n` +
+                `⚖️ ${newFish.berat_min}-${newFish.berat_max}kg\n` +
+                `📍 ${newFish.lokasi}`);
+    }
+    break;
+
+    case 'addrod': {
+        if (!isOwner(sender)) return m.reply("❌ *Owner only!*");
+        
+        const rods = loadJSON('./database/rods.json');
+        const newRod = {
+            name: args[1],
+            price: parseInt(args[2]),
+            effectiveness: parseFloat(args[3]) || 1.0
+        };
+        
+        if (!newRod.name || !newRod.price) {
+            return m.reply(`❌ *Format: ${prefix}addrod <nama> <harga> <effectiveness>*`);
+        }
+        
+        const rodKey = newRod.name.toLowerCase().replace(/ /g, '_');
+        rods[rodKey] = newRod;
+        saveJSON('./database/rods.json', rods);
+        
+        m.reply(`✅ *Berhasil menambah rod!*\n\n` +
+                `🎣 ${newRod.name}\n` +
+                `💰 Rp${newRod.price.toLocaleString()}\n` +
+                `📈 ${newRod.effectiveness}x effectiveness`);
+    }
+    break;
+
+    case 'addcrypto': {
+        if (!isOwner(sender)) return m.reply("❌ *Owner only!*");
+        
+        const cryptos = loadJSON('./database/crypto.json');
+        const newCrypto = {
+            name: args[1],
+            price: parseInt(args[2]),
+            trend: args[3] || 'naik'
+        };
+        
+        if (!newCrypto.name || !newCrypto.price) {
+            return m.reply(`❌ *Format: ${prefix}addcrypto <nama> <harga> <trend>*`);
+        }
+        
+        const code = args[0]?.toUpperCase();
+        cryptos[code] = newCrypto;
+        saveJSON('./database/crypto.json', cryptos);
+        
+        m.reply(`✅ *Berhasil menambah crypto!*\n\n` +
+                `💰 ${newCrypto.name} (${code})\n` +
+                `💵 Rp${newCrypto.price.toLocaleString()}\n` +
+                `📊 ${newCrypto.trend}`);
+    }
+    break;
+
+    case 'setenergy': {
+        if (!isAdmin(sender)) return m.reply("❌ *Admin only!*");
+        
+        const target = m.mentionedJid?.[0] || sender;
+        const energy = parseInt(args[1]);
+        
+        if (!energy || energy < 0 || energy > 100) return m.reply("❌ *Energy harus antara 0-100!*");
+        
+        const users = loadJSON('./database/users.json');
+        if (!users[target]) users[target] = {};
+        users[target].energy = energy;
+        
+        saveJSON('./database/users.json', users);
+        
+        const targetName = target.split('@')[0];
+        m.reply(`✅ *Berhasil set energy!*\n\n` +
+                `👤 Kepada: ${targetName}\n` +
+                `⚡ Energy: ${energy}/100`);
+    }
+    break;
+
+    case 'setlevel': {
+        if (!isAdmin(sender)) return m.reply("❌ *Admin only!*");
+        
+        const target = m.mentionedJid?.[0] || sender;
+        const level = parseInt(args[1]);
+        
+        if (!level || level < 1) return m.reply("❌ *Level harus lebih dari 0!*");
+        
+        const users = loadJSON('./database/users.json');
+        if (!users[target]) users[target] = {};
+        users[target].level = level;
+        users[target].exp = 0;
+        
+        saveJSON('./database/users.json', users);
+        
+        const targetName = target.split('@')[0];
+        m.reply(`✅ *Berhasil set level!*\n\n` +
+                `👤 Kepada: ${targetName}\n` +
+                `⭐ Level: ${level}`);
+    }
+    break;
+
+      // ==================== BASIC COMMANDS ====================
       case "mode": {
         m.reply(`🤖 Bot Mode: ${conn.public ? "Public" : "Self"}`);
       }
@@ -1465,6 +2352,6 @@ break
 let file = fileURLToPath(import.meta.url);
 fs.watchFile(file, () => {
     fs.unwatchFile(file);
-    console.log(chalk.green(` ~> File updated: ${file}`));
+    console.log(chalk.red(` ~> File updated: ${file}`));
     import(`${file}?update=${Date.now()}`);
 });
